@@ -222,6 +222,11 @@ export default {
   'Add Variable': '添加变量',
   'Copy Spider': '复制爬虫',
   'New Spider Name': '新爬虫名称',
+  'All Spiders': '所有爬虫',
+  'My Spiders': '我的爬虫',
+  'Public Spiders': '公共爬虫',
+  'Is Public': '是否公共',
+  'Owner': '所有者',
 
   // 爬虫列表
   'Name': '名称',
@@ -269,6 +274,7 @@ export default {
 
   // 项目
   'All Tags': '全部标签',
+  'Projects': '项目',
   'Project Name': '项目名称',
   'Project Description': '项目描述',
   'Tags': '标签',
@@ -305,6 +311,13 @@ export default {
   'Robots Protocol': 'Robots 协议',
   'Home Page Response Time (sec)': '首页响应时间(秒)',
   'Home Page Response Status Code': '首页响应状态码',
+
+  // 反馈
+  'Feedback': '反馈',
+  'Feedbacks': '反馈',
+  'Wechat': '微信',
+  'Content': '内容',
+  'Rating': '评分',
 
   // 用户
   'Super Admin': '超级管理员',
@@ -419,6 +432,7 @@ export default {
   'How to Upgrade': '升级方式',
   'Release': '发布',
   'Add Wechat to join discussion group': '添加微信 tikazyq1 加入交流群',
+  'Submitted successfully': '提交成功',
 
   // 登录
   'Sign in': '登录',
@@ -458,6 +472,14 @@ export default {
   'Allow Sending Statistics': '允许发送统计信息',
   'General': '通用',
   'Enable Tutorial': '启用教程',
+
+  // 挑战
+  'Challenge': '挑战',
+  'Challenges': '挑战',
+  'Difficulty': '难度',
+  'Achieved': '已达成',
+  'Not Achieved': '未达成',
+  'Start Challenge': '开始挑战',
 
   // 全局
   'Related Documentation': '相关文档',
@@ -584,6 +606,11 @@ docker run -d --restart always --name crawlab_worker \\
   'Are you sure to stop selected items?': '您是否确认停止所选项？',
   'Sent signals to cancel selected tasks': '已经向所选任务发送取消任务信号',
   'Copied successfully': '已成功复制',
+  'You have started the challenge.': '您已开始挑战',
+  'Please enter your email': '请输入您的邮箱',
+  'Please enter your Wechat account': '请输入您的微信账号',
+  'Please enter your feedback content': '请输入您的反馈内容',
+  'No response from the server. Please make sure your server is running correctly. You can also refer to the documentation to solve this issue.': '服务器无响应，请保证您的服务器正常运行。您也可以参考文档来解决这个问题（文档链接在下方）',
 
   // 其他
   'Star crawlab-team/crawlab on GitHub': '在 GitHub 上为 Crawlab 加星吧'

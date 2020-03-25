@@ -1,3 +1,14 @@
+# 0.4.9 (TBC)
+### Features / Enhancement
+- **Challenges**. Users can achieve different challenges based on their actions.
+- **More Advanced Access Control**. More granular access control, e.g. normal users can only view/manage their own spiders/projects and admin users can view/manage all spiders/projects.
+- **Feedback**. Allow users to send feedbacks and ratings to Crawlab team.
+- **Better Home Page Metrics**. Optimized metrics display on home page.
+
+### Bug Fixes
+- **CLI unable to use on Windows**. [#580](https://github.com/crawlab-team/crawlab/issues/580)
+- **Re-upload error**. [#643](https://github.com/crawlab-team/crawlab/issues/643) [#640](https://github.com/crawlab-team/crawlab/issues/640)
+
 # 0.4.8 (2020-03-11)
 ### Features / Enhancement
 - **Support Installations of More Programming Languages**. Now users can install or pre-install more programming languages including Java, .Net Core and PHP.
