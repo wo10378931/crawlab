@@ -1,8 +1,11 @@
 <template>
   <div class="node-installation">
-    <el-form inline>
+    <el-form class="search-form" inline>
       <el-form-item>
-        <el-autocomplete size="small" clearable @clear="onSearch"
+        <el-autocomplete
+          class="search-box"
+          size="small"
+          clearable
           v-if="activeLang.executable_name === 'python'"
           v-model="depName"
           style="width: 240px"
@@ -10,7 +13,8 @@
           :fetchSuggestions="fetchAllDepList"
           :minlength="2"
           @select="onSearch"
-        ></el-autocomplete>
+          @clear="onSearch"
+        />
         <el-input
           v-else
           v-model="depName"
@@ -20,9 +24,9 @@
       </el-form-item>
       <el-form-item>
         <el-button size="small"
-          icon="el-icon-search"
-          type="success"
-          @click="onSearch"
+                   icon="el-icon-search"
+                   type="success"
+                   @click="onSearch"
         >
           {{$t('Search')}}
         </el-button>
@@ -34,65 +38,98 @@
     <el-tabs v-model="activeTab" @tab-click="onTabChange">
       <el-tab-pane v-for="lang in langList" :key="lang.name" :label="lang.name" :name="lang.executable_name"/>
     </el-tabs>
-    <template v-if="activeLang.installed">
-      <el-table
-        height="calc(100vh - 280px)"
-        :data="computedDepList"
-        :empty-text="depName ? $t('No Data') : $t('Please search dependencies')"
-        v-loading="loading"
-        border
-      >
-        <el-table-column
-          :label="$t('Name')"
-          prop="name"
-          width="180"
-        />
-        <el-table-column
-          :label="!isShowInstalled ? $t('Latest Version') : $t('Version')"
-          prop="version"
-          width="100"
-        />
-        <el-table-column
-          v-if="!isShowInstalled"
-          :label="$t('Description')"
-          prop="description"
-        />
-        <el-table-column
-          :label="$t('Action')"
+    <template v-if="activeLang.install_status === 'installed'">
+      <template v-if="!['python', 'node'].includes(activeLang.executable_name)">
+        <div class="install-wrapper">
+          <el-button
+            icon="el-icon-check"
+            disabled
+            type="success"
+          >
+            {{$t('Installed')}}
+          </el-button>
+        </div>
+      </template>
+      <template v-else>
+        <el-table
+          height="calc(100vh - 280px)"
+          :data="computedDepList"
+          :empty-text="depName ? $t('No Data') : $t('Please search dependencies')"
+          v-loading="loading"
+          border
         >
-          <template slot-scope="scope">
-            <el-button
-              v-if="!scope.row.installed"
-              v-loading="getDepLoading(scope.row)"
-              :disabled="getDepLoading(scope.row)"
-              size="mini"
-              type="primary"
-              @click="onClickInstallDep(scope.row)"
-            >
-              {{$t('Install')}}
-            </el-button>
-            <el-button
-              v-else
-              v-loading="getDepLoading(scope.row)"
-              :disabled="getDepLoading(scope.row)"
-              size="mini"
-              type="danger"
-              @click="onClickUninstallDep(scope.row)"
-            >
-              {{$t('Uninstall')}}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          <el-table-column
+            :label="$t('Name')"
+            prop="name"
+            width="180"
+          />
+          <el-table-column
+            :label="!isShowInstalled ? $t('Latest Version') : $t('Version')"
+            prop="version"
+            width="100"
+          />
+          <el-table-column
+            v-if="!isShowInstalled"
+            :label="$t('Description')"
+            prop="description"
+          />
+          <el-table-column
+            :label="$t('Action')"
+          >
+            <template slot-scope="scope">
+              <el-button
+                v-if="!scope.row.installed"
+                :icon="getDepLoading(scope.row) ? 'el-icon-loading' : ''"
+                :disabled="getDepLoading(scope.row)"
+                size="mini"
+                type="primary"
+                @click="onClickInstallDep(scope.row)"
+              >
+                {{$t('Install')}}
+              </el-button>
+              <el-button
+                v-else
+                :icon="getDepLoading(scope.row) ? 'el-icon-loading' : ''"
+                :disabled="getDepLoading(scope.row)"
+                size="mini"
+                type="danger"
+                @click="onClickUninstallDep(scope.row)"
+              >
+                {{$t('Uninstall')}}
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </template>
     </template>
-    <template v-else>
+    <template v-else-if="activeLang.install_status === 'installing'">
       <div class="install-wrapper">
-        <h3>{{activeLang.name + $t(' is not installed, do you want to install it?')}}</h3>
         <el-button
-          v-loading="isLoadingInstallLang"
-          :disabled="isLoadingInstallLang"
+          icon="el-icon-loading"
+          disabled
+          type="warning"
+        >
+          {{$t('Installing')}}
+        </el-button>
+      </div>
+    </template>
+    <template v-else-if="activeLang.install_status === 'installing-other'">
+      <div class="install-wrapper">
+        <el-button
+          loading="el-icon-close"
+          disabled
+          type="warning"
+        >
+          {{$t('Other language installing')}}
+        </el-button>
+      </div>
+    </template>
+    <template v-else-if="activeLang.install_status === 'not-installed'">
+      <div class="install-wrapper">
+        <h4>{{$t('This language is not installed yet.')}}</h4>
+        <el-button
+          icon="el-icon-check"
           type="primary"
-          style="width: 240px;font-weight: bolder;font-size: 18px"
           @click="onClickInstallLang"
         >
           {{$t('Install')}}
@@ -116,7 +153,7 @@ export default {
       depName: '',
       depList: [],
       loading: false,
-      isShowInstalled: false,
+      isShowInstalled: true,
       installedDepList: [],
       depLoadingDict: {},
       isLoadingInstallLang: false
@@ -148,6 +185,7 @@ export default {
   methods: {
     async getDepList () {
       this.loading = true
+      this.depList = []
       const res = await this.$request.get(`/nodes/${this.nodeForm._id}/deps`, {
         lang: this.activeLang.executable_name,
         dep_name: this.depName
@@ -170,7 +208,11 @@ export default {
       }
     },
     async getInstalledDepList () {
+      if (this.activeLang.install_status !== 'installed') return
+      if (!['Python', 'Node.js'].includes(this.activeLang.name)) return
+
       this.loading = true
+      this.installedDepList = []
       const res = await this.$request.get(`/nodes/${this.nodeForm._id}/deps/installed`, {
         lang: this.activeLang.executable_name
       })
@@ -289,18 +331,17 @@ export default {
     const res = await this.$request.get(`/nodes/${id}/langs`)
     this.langList = res.data.data
     this.activeTab = this.langList[0].executable_name || ''
+    setTimeout(() => {
+      this.getInstalledDepList()
+    }, 100)
   }
 }
 </script>
 
 <style scoped>
-  .node-installation >>> .el-button .el-loading-spinner {
-    margin-top: -13px;
-    height: 28px;
-  }
-
-  .node-installation >>> .el-button .el-loading-spinner .circular {
-    width: 28px;
-    height: 28px;
+  .node-installation >>> .install-wrapper .el-button {
+    min-width: 240px;
+    font-weight: bolder;
+    font-size: 18px
   }
 </style>

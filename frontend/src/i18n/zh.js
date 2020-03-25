@@ -12,6 +12,7 @@ export default {
   'Deploys': '部署',
   'Sites': '网站',
   'Setting': '设置',
+  'Project': '项目',
 
   // 标签
   'Overview': '概览',
@@ -38,6 +39,7 @@ export default {
   Error: '错误',
   NA: '未知',
   Cancelled: '已取消',
+  Abnormal: '异常',
 
   // 操作
   Add: '添加',
@@ -71,6 +73,14 @@ export default {
   'Create Directory': '新建目录',
   'Create File': '新建文件',
   'Add Node': '添加节点',
+  'Add Project': '添加项目',
+  'Sync': '同步',
+  'Auto Sync': '自动同步',
+  'Sync Frequency': '同步频率',
+  'Reset': '重置',
+  'Copy': '复制',
+  'Upgrade': '版本升级',
+  'Ok': '确定',
 
   // 主页
   'Total Tasks': '总任务数',
@@ -180,6 +190,38 @@ export default {
   'Settings': '设置',
   'Display Name': '显示名称',
   'Template': '模版',
+  'Is Scrapy': '是否为 Scrapy',
+  'Scrapy Spider': 'Scrapy 爬虫',
+  'Scrapy Spiders': 'Scrapy 爬虫',
+  'Scrapy Log Level': 'Scrapy 日志等级',
+  'Parameter Name': '参数名',
+  'Parameter Value': '参数值',
+  'Parameter Type': '参数类别',
+  'Other': '其他',
+  'Scrapy Config': 'Scrapy 配置',
+  'Scrapy Settings': 'Scrapy 设置',
+  'Variable Name': '变量名',
+  'Variable Type': '变量类型',
+  'Variable Value': '变量值',
+  'Parameter Edit': '参数编辑',
+  'Add Scrapy Spider': '添加 Scrapy 爬虫',
+  'Is Git': '是否为 Git',
+  'Git Settings': 'Git 设置',
+  'Git URL': 'Git URL',
+  'Git Branch': 'Git 分支',
+  'Git Username': 'Git 用户名',
+  'Git Password': 'Git 密码',
+  'Has Credential': '需要验证',
+  'SSH Public Key': 'SSH 公钥',
+  'Is Long Task': '是否为长任务',
+  'Long Task': '长任务',
+  'Running Task Count': '运行中的任务数',
+  'Running Tasks': '运行中的任务',
+  'Item Name': 'Item 名称',
+  'Add Item': '添加 Item',
+  'Add Variable': '添加变量',
+  'Copy Spider': '复制爬虫',
+  'New Spider Name': '新爬虫名称',
 
   // 爬虫列表
   'Name': '名称',
@@ -206,6 +248,14 @@ export default {
   'Run Type': '运行类型',
   'Random': '随机',
   'Selected Nodes': '指定节点',
+  'Search Log': '搜索日志',
+  'Auto-Scroll': '自动滚动',
+  'Updating log...': '正在更新日志...',
+  'Error Count': '错误数',
+  'Log with errors': '日志错误',
+  'Empty results': '空结果',
+  'Navigate to Spider': '导航到爬虫',
+  'Navigate to Node': '导航到节点',
 
   // 任务列表
   'Node': '节点',
@@ -216,6 +266,15 @@ export default {
 
   // 部署
   'Time': '时间',
+
+  // 项目
+  'All Tags': '全部标签',
+  'Project Name': '项目名称',
+  'Project Description': '项目描述',
+  'Tags': '标签',
+  'Enter Tags': '输入标签',
+  'No Project': '无项目',
+  'All Projects': '所有项目',
 
   // 定时任务
   'Schedule Name': '定时任务名称',
@@ -230,6 +289,8 @@ export default {
   '[minute] [hour] [day] [month] [day of week]': '[分] [时] [天] [月] [星期几]',
   'Enable/Disable': '启用/禁用',
   'Cron': 'Cron',
+  'Cron Expression': 'Cron 表达式',
+  'Cron expression is invalid': 'Cron 表达式不正确',
 
   // 网站
   'Site': '网站',
@@ -244,6 +305,9 @@ export default {
   'Robots Protocol': 'Robots 协议',
   'Home Page Response Time (sec)': '首页响应时间(秒)',
   'Home Page Response Status Code': '首页响应状态码',
+
+  // 用户
+  'Super Admin': '超级管理员',
 
   // 文件
   'Choose Folder': '选择文件',
@@ -264,6 +328,13 @@ export default {
   Logout: '退出登录',
   Documentation: '文档',
 
+  // 变量类型
+  'String': '字符串',
+  'Number': '数字',
+  'Boolean': '布尔值',
+  'Array/List': '数组/列表',
+  'Object/Dict': '对象/字典',
+
   // 选择
   'Yes': '是',
   'No': '否',
@@ -275,6 +346,15 @@ export default {
   'Executables': '执行文件',
   'Latest Version': '最新版本',
   'Version': '版本',
+  'Installed': '已安装',
+  'Not Installed': '未安装',
+  'Installing': '正在安装',
+  'Install All': '安装全部',
+  'Other language installing': '其他语言正在安装',
+  'This language is not installed yet.': '语言还未安装',
+  'Languages': '语言',
+  'Dependencies': '依赖',
+  'Install on All Nodes': '安装在所有节点',
 
   // 弹出框
   'Notification': '提示',
@@ -335,6 +415,10 @@ export default {
   'New directory name': '新目录名称',
   'Enter new file name': '输入新文件名称',
   'New file name': '新文件名称',
+  'Release Note': '发布记录',
+  'How to Upgrade': '升级方式',
+  'Release': '发布',
+  'Add Wechat to join discussion group': '添加微信 tikazyq1 加入交流群',
 
   // 登录
   'Sign in': '登录',
@@ -350,7 +434,7 @@ export default {
   'Username': '用户名',
   'Password': '密码',
   'Confirm Password': '确认密码',
-  'normal': '正常用户',
+  'normal': '普通用户',
   'admin': '管理用户',
   'Role': '角色',
   'Edit User': '更改用户',
@@ -366,10 +450,18 @@ export default {
   'DingTalk Robot Webhook': '钉钉机器人 Webhook',
   'Wechat Robot Webhook': '微信机器人 Webhook',
   'Password Settings': '密码设置',
-  'Notify Settings': '通知设置',
+  'Notifications': '消息通知',
   'Global Variable': '全局变量',
   'Add Global Variable': '新增全局变量',
   'Are you sure to delete this global variable': '确定删除该全局变量？',
+  'Key': '设置',
+  'Allow Sending Statistics': '允许发送统计信息',
+  'General': '通用',
+  'Enable Tutorial': '启用教程',
+
+  // 全局
+  'Related Documentation': '相关文档',
+  'Click to view related Documentation': '点击查看相关文档',
 
   // 其他
   tagsView: {
@@ -410,6 +502,88 @@ docker run -d --restart always --name crawlab_worker \\
 
 更多信息，请参考 [官方文档](https://docs.crawlab.cn)。
 `,
+
+  // 教程
+  'Skip': '跳过',
+  'Previous': '上一步',
+  'Next': '下一步',
+  'Finish': '结束',
+  'Click to add a new spider.<br><br>You can also add a <strong>Customized Spider</strong> through <a href="https://docs.crawlab.cn/Usage/SDK/CLI.html" target="_blank" style="color: #409EFF">CLI Tool</a>.': '点击并添加爬虫<br><br>您也可以通过 <a href="https://docs.crawlab.cn/Usage/SDK/CLI.html" target="_blank" style="color: #409EFF">CLI 工具</a> 添加<strong>自定义爬虫</strong>',
+  'You can view your created spiders here.<br>Click a table row to view <strong>spider details</strong>.': '您可以查看创建的爬虫<br>点击行来查看<strong>爬虫详情</strong>',
+  'View a list of <strong>Configurable Spiders</strong>': '查看<strong>可配置爬虫</strong>列表',
+  'View a list of <strong>Customized Spiders</strong>': '查看<strong>自定义爬虫</strong>列表',
+  '<strong>Customized Spider</strong> is a highly customized spider, which is able to run on any programming language and any web crawler framework.': '<strong>自定义爬虫</strong>是高度自定义化的爬虫，能够运行任何编程语言和爬虫框架',
+  '<strong>Configurable Spider</strong> is a spider defined by config data, aimed at streamlining spider development and improving dev efficiency.': '<strong>可配置爬虫</strong>被配置数据所定义，旨在将爬虫开发流程化以及提高爬虫开发效率',
+  'Unique identifier for the spider': '爬虫的唯一识别符',
+  'How the spider is displayed on Crawlab': '爬虫在 Crawlab 上的展示名称',
+  'A shell command to be executed when the spider is triggered to run (only available for <strong>Customized Spider</strong>': '当爬虫被触发时执行的一行 Shell 命令（仅<strong>自定义爬虫</strong>有效）',
+  'Where the results are stored in the database': '抓取结果在数据库中储存的位置',
+  'Upload a zip file containing all spider files to create the spider (only available for <strong>Customized Spider</strong>)': '上传一个包含所有爬虫文件的 zip 文件，然后创建爬虫（仅<strong>自定义爬虫</strong>有效）',
+  'The spider template to create from (only available for <strong>Configurable Spider</strong>)': '创建爬虫时引用的模版（仅<strong>可配置爬虫</strong>有效）',
+  'Click to confirm to add the spider': '点击并确认添加爬虫',
+  'You can switch to each section of the spider detail.': '您可以切换到爬虫详情的每一个部分',
+  'You can switch to different spider using this selector.': '您可以通过这个选择器切换不同的爬虫',
+  'You can view latest tasks for this spider and click each row to view task detail.': '您可以查看最近的爬虫任务以及点击行来查看任务详情',
+  'You can edit the detail info for this spider.': '您可以编辑爬虫详情信息',
+  'Here you can action on the spider, including running a task, uploading a zip file and save the spider info.': '这里您可以对爬虫进行操作，包括运行爬虫任务、上传 zip 文件以及保存爬虫信息',
+  'File navigation panel.<br><br>You can right click on <br>each item to create or delete<br> a file/directory.': '文件导航栏<br><br>您可以右键点击一个元素<br>来添加或删除文件/文件夹',
+  'Click to add a file or directory<br> on the root directory.': '点击并添加一个文件<br>或文件夹',
+  'You can edit, save, rename<br> and delete the selected file <br>in this box.': '在这个栏位中，您可以<br>编辑、保存、重命名、<br>删除所选择的文件',
+  'Here you can add environment variables that will be passed to the spider program when running a task.': '这里您可以添加环境变量，这些环境变量会被传入运行的爬虫程序中',
+  'You can add, edit and delete schedules (cron jobs) for the spider.': '您可以添加、修改、删除爬虫的定时任务',
+  'You can switch to each section of configurable spider.': '您可以切换到可配置爬虫的每一个部分',
+  'Here is the starting URL of the spider.': '这里是爬虫的起始URL',
+  'Here is the starting stage of the spider.<br><br>A <strong>Stage</strong> is basically a callback in the Scrapy spider.': '这里是爬虫的起始阶段<br><br><strong>阶段</strong>就是 Scrapy 爬虫中的回调函数',
+  'You can run a spider task.<br><br>Spider will be automatically saved when clicking on this button.': '您可以运行爬虫任务<br><br>点击该按钮会自动保存爬虫',
+  'Add/duplicate/delete a stage.': '添加/复制/删除阶段',
+  'Add/duplicate/delete an extract field in the stage.': '添加/复制/删除该阶段下的抓取字段',
+  'You can decide whether this is a list page.<br><br>Click on the CSS/XPath tag to enter the selector expression for list items.<br>For example, "<code>ul > li</code>"': '您可以决定这是否为一个列表页<br><br>点击 CSS/XPath 标签来输入列表元素的选择器表达式<br>例如 "<code>ul > li</code>"',
+  'You can decide whether this is a list page with pagination.<br><br>Click on the CSS/XPath tag to enter the selector expression for the pagination.<br>For example, "<code>a.next</code>"': '您可以决定这是否为一个含分页的列表页<br><br>点击 CSS/XPath 标签来输入分页的选择器表达式<br>例如 "<code>a.next</code>"',
+  'You should enter necessary information for all fields in the stage.': '您应该输入该阶段下所有字段的信息',
+  'If you have multiple stages, e.g. list page + detail page, you should select the next stage in the detail link\'s field.': '如果您有多个阶段，例如列表页+详情页，您应该在详情页链接字段中选择下一个阶段',
+  'You can view the<br> visualization of the stage<br> workflow.': '您可以查看阶段工作流的<br>可视化界面',
+  'You can add the settings here, which will be loaded in the Scrapy\'s <code>settings.py</code> file.<br><br>JSON and Array data are supported.': '您可以在这里添加设置，它们会在 Scrapy 中的 <code>settings.py</code> 中被加载<br><br>JSON 和数组都支持',
+  'You can edit the <code>Spiderfile</code> here.<br><br>For more information, please refer to the <a href="https://docs.crawlab.cn/Usage/Spider/ConfigurableSpider.html" target="_blank" style="color: #409EFF">Documentation (Chinese)</a>.': '您可以在这里编辑 <code>Spiderfile</code><br><br>更多信息, 请参考 <a href="https://docs.crawlab.cn/Usage/Spider/ConfigurableSpider.html" target="_blank" style="color: #409EFF">文档</a>.',
+  'You can filter tasks from this area.': '您可以在这个区域筛选任务',
+  'This is a list of spider tasks executed sorted in a time descending order.': '这是执行过的爬虫任务的列表，按时间降序排列',
+  'Click the row to or the view button to view the task detail.': '点击行或查看按钮来查看任务详情',
+  'Tick and select the tasks you would like to delete in batches.': '勾选您想批量删除的任务',
+  'Click this button to delete selected tasks.': '点击并删除勾选的任务',
+  'This is the info of the task detail.': '这是任务详情信息',
+  'This is the spider info of the task.': '这是任务的爬虫信息',
+  'You can click to view the spider detail for the task.': '您可以点击查看该任务的爬虫详情',
+  'This is the node info of the task.': '这是任务的节点信息',
+  'You can click to view the node detail for the task.': '您可以点击查看该任务的节点详情',
+  'Here you can view the log<br> details for the task. The<br> log is automatically updated.': '这里您可以查看该任务<br>的日志详情，日志是<br>自动更新的',
+  'Here you can view the results scraped by the spider.<br><br><strong>Note:</strong> If you find your results here are empty, please refer to the <a href="https://docs.crawlab.cn/Integration/" target="_blank" style="color: #409EFF">Documentation (Chinese)</a> about how to integrate your spider into Crawlab.': '这里您可以查看爬虫抓取下来的结果<br><br><strong>注意:</strong> 如果这里结果是空的，请参考 <a href="https://docs.crawlab.cn/Integration/" target="_blank" style="color: #409EFF">相关文档</a> 来集成您的爬虫到 Crawlab',
+  'You can download your results as a CSV file by clicking this button.': '您可以点击下载结果为 CSV 文件',
+  'Switch between different nodes.': '在节点间切换',
+  'You can view the latest executed spider tasks.': '您可以查看最近执行过的爬虫任务',
+  'This is the detailed node info.': '这是节点详情',
+  'Here you can install<br> dependencies and modules<br> that are required<br> in your spiders.': '这里您可以安装您爬虫中<br>需要的依赖或模块',
+  'You can search dependencies in the search box and install them by clicking the "Install" button below.': '您可以在搜索框中搜索依赖并点击下面的"安装"按钮来进行安装',
+  'You should fill the form before adding the new schedule.': '在添加新定时任务前，您需要填写这个表单',
+  'The name of the schedule': '定时任务名称',
+  'The type of how to run the task.<br><br>Please refer to the <a href="https://docs.crawlab.cn/Usage/Spider/Run.html" target="_blank" style="color: #409EFF">Documentation (Chinese)</a> for detailed explanation for the options.<br><br>Let\'s select <strong>Selected Nodes</strong> for example.': '表示以哪种方式运行任务，<br><br>请参考 <a href="https://docs.crawlab.cn/Usage/Spider/Run.html" target="_blank" style="color: #409EFF">文档</a> 参考选项解释<br><br>让我们选择 <strong>指定节点</strong> 这个选项',
+  'The spider to run': '运行的爬虫',
+  '<strong>Cron</strong> expression for the schedule.<br><br>If you are not sure what a cron expression is, please refer to this <a href="https://baike.baidu.com/item/crontab/8819388" target="_blank" style="color: #409EFF">Article</a>.': '定时任务的 <strong>Cron</strong> 表达式<br><br>如果您不清楚什么是 Cron 表达式，请参考这篇 <a href="https://baike.baidu.com/item/crontab/8819388" target="_blank" style="color: #409EFF">文章（英文）</a>.',
+  'You can select the correct options in the cron config box to configure the cron expression.': '您可以在 Cron 配置栏里选择正确的选项来配置 Cron 表达式',
+  'The parameters which will be passed into the spider program.': '将被传入爬虫程序里的参数',
+  'The description for the schedule': '定时任务的描述',
+  'Once you have filled all fields, click this button to submit.': '当您填完所有字段，请点击这个按钮来提交定时任务',
+  'Here you can set your general settings.': '这里您可以设置您的通用设置',
+  'In this tab you can configure your notification settings.': '在这个标签中，您可以<br>配置您的消息通知配置',
+  'Here you can add/edit/delete global environment variables which will be passed into your spider programs.': '这里您可以添加/修改/删除全局环境变量，它们会被传入爬虫程序中',
+  'You are running on a mobile device, which is not optimized yet. Please try with a laptop or desktop.': '您正在没有优化过的移动端上浏览，我们建议您用电脑来访问',
+  'Git has been synchronized successfully': 'Git 已经成功同步',
+  'Git has been reset successfully': 'Git 已经成功重置',
+  'This would delete all files of the spider. Are you sure to continue?': '重置将删除该爬虫所有文件，您希望继续吗？',
+  'SSH Public Key is copied to the clipboard': 'SSH 公钥已粘贴到剪切板',
+  'Removed successfully': '已成功删除',
+  'Are you sure to delete selected items?': '您是否确认删除所选项？',
+  'Are you sure to stop selected items?': '您是否确认停止所选项？',
+  'Sent signals to cancel selected tasks': '已经向所选任务发送取消任务信号',
+  'Copied successfully': '已成功复制',
 
   // 其他
   'Star crawlab-team/crawlab on GitHub': '在 GitHub 上为 Crawlab 加星吧'

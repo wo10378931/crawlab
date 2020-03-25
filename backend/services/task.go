@@ -18,11 +18,11 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -110,14 +110,11 @@ func AssignTask(task model.Task) error {
 func SetEnv(cmd *exec.Cmd, envs []model.Env, taskId string, dataCol string) *exec.Cmd {
 	// 默认把Node.js的全局node_modules加入环境变量
 	envPath := os.Getenv("PATH")
-	for _, _path := range strings.Split(envPath, ":") {
-		if strings.Contains(_path, "/.nvm/versions/node/") {
-			pathNodeModules := strings.Replace(_path, "/bin", "/lib/node_modules", -1)
-			_ = os.Setenv("PATH", pathNodeModules+":"+envPath)
-			_ = os.Setenv("NODE_PATH", pathNodeModules)
-			break
-		}
-	}
+	homePath := os.Getenv("HOME")
+	nodeVersion := "v8.12.0"
+	nodePath := path.Join(homePath, ".nvm/versions/node", nodeVersion, "lib/node_modules")
+	_ = os.Setenv("PATH", nodePath+":"+envPath)
+	_ = os.Setenv("NODE_PATH", nodePath)
 
 	// 默认环境变量
 	cmd.Env = append(os.Environ(), "CRAWLAB_TASK_ID="+taskId)
@@ -246,7 +243,6 @@ func ExecuteShellCmd(cmdStr string, cwd string, t model.Task, s model.Spider) (e
 	if runtime.GOOS == constants.Windows {
 		cmd = exec.Command("cmd", "/C", cmdStr)
 	} else {
-		cmd = exec.Command("")
 		cmd = exec.Command("sh", "-c", cmdStr)
 	}
 
@@ -317,13 +313,13 @@ func MakeLogDir(t model.Task) (fileDir string, err error) {
 }
 
 // 获取日志文件路径
-func GetLogFilePaths(fileDir string) (filePath string) {
+func GetLogFilePaths(fileDir string, t model.Task) (filePath string) {
 	// 时间戳
 	ts := time.Now()
 	tsStr := ts.Format("20060102150405")
 
 	// stdout日志文件
-	filePath = filepath.Join(fileDir, tsStr+".log")
+	filePath = filepath.Join(fileDir, t.Id+"_"+tsStr+".log")
 
 	return filePath
 }
@@ -354,10 +350,9 @@ func SaveTaskResultCount(id string) func() {
 func ExecuteTask(id int) {
 	if flag, ok := LockList.Load(id); ok {
 		if flag.(bool) {
-			log.Debugf(GetWorkerPrefix(id) + "正在执行任务...")
+			log.Debugf(GetWorkerPrefix(id) + "running tasks...")
 			return
 		}
-
 	}
 
 	// 上锁
@@ -382,6 +377,7 @@ func ExecuteTask(id int) {
 
 	// 节点队列
 	queueCur := "tasks:node:" + node.Id.Hex()
+
 	// 节点队列任务
 	var msg string
 	if msg, err = database.RedisClient.LPop(queueCur); err != nil {
@@ -391,6 +387,7 @@ func ExecuteTask(id int) {
 		}
 	}
 
+	// 如果没有获取到任务，返回
 	if msg == "" {
 		return
 	}
@@ -422,7 +419,7 @@ func ExecuteTask(id int) {
 		return
 	}
 	// 获取日志文件路径
-	t.LogPath = GetLogFilePaths(fileDir)
+	t.LogPath = GetLogFilePaths(fileDir, t)
 
 	// 工作目录
 	cwd := filepath.Join(
@@ -508,6 +505,8 @@ func ExecuteTask(id int) {
 		log.Errorf(GetWorkerPrefix(id) + err.Error())
 		return
 	}
+
+	// 统计数据
 	t.Status = constants.StatusFinished                     // 任务状态: 已完成
 	t.FinishTs = time.Now()                                 // 结束时间
 	t.RuntimeDuration = t.FinishTs.Sub(t.StartTs).Seconds() // 运行时长
@@ -537,7 +536,7 @@ func SpiderFileCheck(t model.Task, spider model.Spider) error {
 	// 判断爬虫文件是否存在
 	gfFile := model.GetGridFs(spider.FileId)
 	if gfFile == nil {
-		t.Error = "找不到爬虫文件，请重新上传"
+		t.Error = "cannot find spider files, please re-upload"
 		t.Status = constants.StatusError
 		t.FinishTs = time.Now()                                 // 结束时间
 		t.RuntimeDuration = t.FinishTs.Sub(t.StartTs).Seconds() // 运行时长
@@ -572,7 +571,7 @@ func GetTaskLog(id string) (logStr string, err error) {
 				log.Errorf(err.Error())
 			}
 
-			fileP := GetLogFilePaths(fileDir)
+			fileP := GetLogFilePaths(fileDir, task)
 
 			// 获取日志文件路径
 			fLog, err := os.Create(fileP)
@@ -669,7 +668,7 @@ func CancelTask(id string) (err error) {
 	return nil
 }
 
-func AddTask(t model.Task) error {
+func AddTask(t model.Task) (string, error) {
 	// 生成任务ID
 	id := uuid.NewV4()
 	t.Id = id.String()
@@ -686,17 +685,17 @@ func AddTask(t model.Task) error {
 	if err := model.AddTask(t); err != nil {
 		log.Errorf(err.Error())
 		debug.PrintStack()
-		return err
+		return t.Id, err
 	}
 
 	// 加入任务队列
 	if err := AssignTask(t); err != nil {
 		log.Errorf(err.Error())
 		debug.PrintStack()
-		return err
+		return t.Id, err
 	}
 
-	return nil
+	return t.Id, nil
 }
 
 func GetTaskEmailMarkdownContent(t model.Task, s model.Spider) string {
@@ -854,10 +853,18 @@ func SendNotifications(u model.User, t model.Task, s model.Spider) {
 }
 
 func InitTaskExecutor() error {
+	// 构造任务执行器
 	c := cron.New(cron.WithSeconds())
 	Exec = &Executor{
 		Cron: c,
 	}
+
+	// 如果不允许主节点运行任务，则跳过
+	if model.IsMaster() && viper.GetString("setting.runOnMaster") == "N" {
+		return nil
+	}
+
+	// 运行定时任务
 	if err := Exec.Start(); err != nil {
 		return err
 	}

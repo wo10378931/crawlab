@@ -1,3 +1,72 @@
+# 0.4.8 (2020-03-11)
+### 功能 / 优化
+- **支持更多编程语言安装**. 现在用户可以安装或预装更多的编程语言，包括 Java、.Net Core、PHP.
+- **安装 UI 优化**. 用户能够更好的查看和管理节点列表页的安装.
+- **更多 Git 支持**. 允许用户查看 Git Commits 记录，并 Checkout 到相应 Commit.
+- **支持用 Hostname 作为节点注册类型**. 用户可以将 hostname 作为节点的唯一识别号.
+- **RPC 支持**. 加入 RPC 支持来更好的管理节点通信.
+- **是否在主节点运行开关**. 用户可以决定是否在主节点运行，如果为否，则所有任务将在工作节点上运行.
+- **默认禁用教程**.
+- **加入相关文档侧边栏**.
+- **加载页面优化**.
+
+### Bug 修复
+- **重复节点**. [#391](https://github.com/crawlab-team/crawlab/issues/391)
+- **重复上传爬虫**. [#603](https://github.com/crawlab-team/crawlab/issues/603)
+- **节点第三方模块安装失败导致 节点安装第三方部分无法使用**. [#609](https://github.com/crawlab-team/crawlab/issues/609)
+- **离线节点也会创建任务**. [#622](https://github.com/crawlab-team/crawlab/issues/622)
+
+# 0.4.7 (2020-02-24)
+### 功能 / 优化
+- **更好的支持 Scrapy**. 爬虫识别，`settings.py` 配置，日志级别选择，爬虫选择. [#435](https://github.com/crawlab-team/crawlab/issues/435)
+- **Git 同步**. 允许用户将 Git 项目同步到 Crawlab.
+- **长任务支持**. 用户可以添加长任务爬虫，这些爬虫可以跑长期运行的任务. [425](https://github.com/crawlab-team/crawlab/issues/425)
+- **爬虫列表优化**. 分状态任务列数统计，任务列表详情弹出框，图例. [425](https://github.com/crawlab-team/crawlab/issues/425)
+- **版本升级检测**. 检测最新版本，通知用户升级.
+- **批量操作爬虫**. 允许用户批量运行/停止爬虫任务，以及批量删除爬虫.
+- **复制爬虫**. 允许用户复制已存在爬虫来创建新爬虫.
+- **微信群二维码**.
+
+### Bug 修复
+- **定时任务爬虫选择问题**. 字段不会随着爬虫变化而响应.
+- **定时任务冲突问题**. 两个不同的爬虫设置定时任务，时间设置成相同的话，可能会有bug. [#515](https://github.com/crawlab-team/crawlab/issues/515) [#565](https://github.com/crawlab-team/crawlab/issues/565)
+- **任务日志问题**. 在同一时间触发的不同任务可能会写入同一个日志文件. [#577](https://github.com/crawlab-team/crawlab/issues/577)
+- **任务列表筛选选项不全**.
+
+# 0.4.6 (2020-02-13)
+### 功能 / 优化
+- **Node.js SDK**. 用户可以将 SDK 应用到他们的 Node.js 爬虫中.
+- **日志管理优化**. 日志搜索，错误高亮，自动滚动.
+- **任务执行流程优化**. 允许用户在触发任务后跳转到该任务详情页.
+- **任务展示优化**. 在爬虫详情页的最近任务表格中加入了“参数”列. [#295](https://github.com/crawlab-team/crawlab/issues/295)
+- **爬虫列表优化**. 在爬虫列表页加入"更新时间"和"创建时间". [#505](https://github.com/crawlab-team/crawlab/issues/505)
+- **页面加载占位器**. 
+
+### Bug 修复
+- **定时任务配置失去焦点**. [#519](https://github.com/crawlab-team/crawlab/issues/519)
+- **无法用 CLI 工具上传爬虫**. [#524](https://github.com/crawlab-team/crawlab/issues/524)
+
+# 0.4.5 (2020-02-03)
+### 功能 / 优化
+- **交互式教程**. 引导用户了解 Crawlab 的主要功能.
+- **加入全局环境变量**. 可以设置全局环境变量，然后传入到所有爬虫程序中. [#177](https://github.com/crawlab-team/crawlab/issues/177)
+- **项目**. 允许用户将爬虫关联到项目上. [#316](https://github.com/crawlab-team/crawlab/issues/316)
+- **示例爬虫**. 当初始化时，自动加入示例爬虫. [#379](https://github.com/crawlab-team/crawlab/issues/379)
+- **用户管理优化**. 限制管理用户的权限. [#456](https://github.com/crawlab-team/crawlab/issues/456)
+- **设置页面优化**.
+- **任务结果页面优化**.
+
+### Bug 修复
+- **无法找到爬虫文件错误**. [#485](https://github.com/crawlab-team/crawlab/issues/485)
+- **点击删除按钮导致跳转**. [#480](https://github.com/crawlab-team/crawlab/issues/480)
+- **无法在空爬虫里创建文件**. [#479](https://github.com/crawlab-team/crawlab/issues/479)
+- **下载结果错误**. [#465](https://github.com/crawlab-team/crawlab/issues/465)
+- **crawlab-sdk CLI 错误**. [#458](https://github.com/crawlab-team/crawlab/issues/458)
+- **页面刷新问题**. [#441](https://github.com/crawlab-team/crawlab/issues/441)
+- **结果不支持 JSON**. [#202](https://github.com/crawlab-team/crawlab/issues/202)
+- **修复“删除爬虫后获取所有爬虫”错误**.
+- **修复 i18n 警告**.
+
 # 0.4.4 (2020-01-17)
 
 ### 功能 / 优化

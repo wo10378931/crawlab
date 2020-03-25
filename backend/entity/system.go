@@ -15,11 +15,13 @@ type Executable struct {
 }
 
 type Lang struct {
-	Name              string `json:"name"`
-	ExecutableName    string `json:"executable_name"`
-	ExecutablePath    string `json:"executable_path"`
-	DepExecutablePath string `json:"dep_executable_path"`
-	Installed         bool   `json:"installed"`
+	Name              string   `json:"name"`
+	ExecutableName    string   `json:"executable_name"`
+	ExecutablePaths   []string `json:"executable_paths"`
+	DepExecutablePath string   `json:"dep_executable_path"`
+	LockPath          string   `json:"lock_path"`
+	InstallScript     string   `json:"install_script"`
+	InstallStatus     string   `json:"install_status"`
 }
 
 type Dependency struct {

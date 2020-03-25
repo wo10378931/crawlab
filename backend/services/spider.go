@@ -14,9 +14,14 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
+	"io"
+	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime/debug"
+	"time"
 )
 
 type SpiderFileData struct {
@@ -69,6 +74,20 @@ func UploadSpiderToGridFsFromMaster(spider model.Spider) error {
 	spider.FileId = fid
 	_ = spider.Save()
 
+	// 获取爬虫同步实例
+	spiderSync := spider_handler.SpiderSync{
+		Spider: spider,
+	}
+
+	// 获取gfFile
+	gfFile2 := model.GetGridFs(spider.FileId)
+
+	// 生成MD5
+	spiderSync.CreateMd5File(gfFile2.Md5)
+
+	// 检查是否为 Scrapy 爬虫
+	spiderSync.CheckIsScrapy()
+
 	return nil
 }
 
@@ -101,6 +120,7 @@ func UploadToGridFs(fileName string, filePath string) (fid bson.ObjectId, err er
 	}
 	// 关闭文件，提交写入
 	if err = f.Close(); err != nil {
+		debug.PrintStack()
 		return "", err
 	}
 	// 文件ID
@@ -185,6 +205,7 @@ func PublishSpider(spider model.Spider) {
 		log.Infof("path not found: %s", path)
 		spiderSync.Download()
 		spiderSync.CreateMd5File(gfFile.Md5)
+		spiderSync.CheckIsScrapy()
 		return
 	}
 	// md5文件不存在，则下载
@@ -242,15 +263,287 @@ func RemoveSpider(id string) error {
 	return nil
 }
 
+func CancelSpider(id string) error {
+	// 获取该爬虫
+	spider, err := model.GetSpider(bson.ObjectIdHex(id))
+	if err != nil {
+		return err
+	}
+
+	// 获取该爬虫待定或运行中的任务列表
+	query := bson.M{
+		"spider_id": spider.Id,
+		"status": bson.M{
+			"$in": []string{
+				constants.StatusPending,
+				constants.StatusRunning,
+			},
+		},
+	}
+	tasks, err := model.GetTaskList(query, 0, constants.Infinite, "-create_ts")
+	if err != nil {
+		return err
+	}
+
+	// 遍历任务列表，依次停止
+	for _, task := range tasks {
+		if err := CancelTask(task.Id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func cloneGridFsFile(spider model.Spider, newName string) (err error) {
+	// 构造新爬虫
+	newSpider := spider
+	newSpider.Id = bson.NewObjectId()
+	newSpider.Name = newName
+	newSpider.DisplayName = newName
+	newSpider.Src = path.Join(path.Dir(spider.Src), newName)
+	newSpider.CreateTs = time.Now()
+	newSpider.UpdateTs = time.Now()
+
+	// GridFS连接实例
+	s, gf := database.GetGridFs("files")
+	defer s.Close()
+
+	// 被克隆爬虫的GridFS文件
+	f, err := gf.OpenId(spider.FileId)
+	if err != nil {
+		log.Errorf(err.Error())
+		debug.PrintStack()
+		return err
+	}
+
+	// 新爬虫的GridFS文件
+	fNew, err := gf.Create(newSpider.Name + ".zip")
+	if err != nil {
+		log.Errorf(err.Error())
+		debug.PrintStack()
+		return err
+	}
+
+	// 生成唯一ID
+	randomId := uuid.NewV4()
+	tmpPath := viper.GetString("other.tmppath")
+	if !utils.Exists(tmpPath) {
+		if err := os.MkdirAll(tmpPath, 0777); err != nil {
+			log.Errorf("mkdir other.tmppath error: %v", err.Error())
+			return err
+		}
+	}
+
+	// 创建临时文件
+	tmpFilePath := filepath.Join(tmpPath, randomId.String()+".zip")
+	tmpFile := utils.OpenFile(tmpFilePath)
+
+	// 拷贝到临时文件
+	if _, err := io.Copy(tmpFile, f); err != nil {
+		log.Errorf(err.Error())
+		debug.PrintStack()
+		return err
+	}
+
+	// 关闭临时文件
+	if err := tmpFile.Close(); err != nil {
+		log.Errorf(err.Error())
+		debug.PrintStack()
+		return err
+	}
+
+	// 读取内容
+	fContent, err := ioutil.ReadFile(tmpFilePath)
+	if err != nil {
+		log.Errorf(err.Error())
+		debug.PrintStack()
+		return err
+	}
+
+	// 写入GridFS文件
+	if _, err := fNew.Write(fContent); err != nil {
+		log.Errorf(err.Error())
+		debug.PrintStack()
+		return err
+	}
+
+	// 关闭被克隆爬虫GridFS文件
+	if err = f.Close(); err != nil {
+		log.Errorf(err.Error())
+		debug.PrintStack()
+		return err
+	}
+
+	// 将新爬虫文件复制
+	newSpider.FileId = fNew.Id().(bson.ObjectId)
+
+	// 保存新爬虫
+	if err := newSpider.Add(); err != nil {
+		return err
+	}
+
+	// 关闭新爬虫GridFS文件
+	if err := fNew.Close(); err != nil {
+		log.Errorf(err.Error())
+		debug.PrintStack()
+		return err
+	}
+
+	// 删除临时文件
+	if err := os.RemoveAll(tmpFilePath); err != nil {
+		log.Errorf(err.Error())
+		debug.PrintStack()
+		return err
+	}
+
+	// 同步爬虫
+	PublishSpider(newSpider)
+
+	return nil
+}
+
+func CopySpider(spider model.Spider, newName string) error {
+	// 克隆GridFS文件
+	if err := cloneGridFsFile(spider, newName); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func InitDemoSpiders () {
+	// 添加Demo爬虫
+	templateSpidersDir := "./template/spiders"
+	for _, info := range utils.ListDir(templateSpidersDir) {
+		if !info.IsDir() {
+			continue
+		}
+		spiderName := info.Name()
+
+		// 如果爬虫在数据库中不存在，则添加
+		spider := model.GetSpiderByName(spiderName)
+		if spider.Name != "" {
+			// 存在同名爬虫，跳过
+			continue
+		}
+
+		// 拷贝爬虫
+		templateSpiderPath := path.Join(templateSpidersDir, spiderName)
+		spiderPath := path.Join(viper.GetString("spider.path"), spiderName)
+		if utils.Exists(spiderPath) {
+			utils.RemoveFiles(spiderPath)
+		}
+		if err := utils.CopyDir(templateSpiderPath, spiderPath); err != nil {
+			log.Errorf("copy error: " + err.Error())
+			debug.PrintStack()
+			continue
+		}
+
+		// 构造配置数据
+		configData := entity.ConfigSpiderData{}
+
+		// 读取YAML文件
+		yamlFile, err := ioutil.ReadFile(path.Join(spiderPath, "Spiderfile"))
+		if err != nil {
+			log.Errorf("read yaml error: " + err.Error())
+			//debug.PrintStack()
+			continue
+		}
+
+		// 反序列化
+		if err := yaml.Unmarshal(yamlFile, &configData); err != nil {
+			log.Errorf("unmarshal error: " + err.Error())
+			debug.PrintStack()
+			continue
+		}
+
+		if configData.Type == constants.Customized {
+			// 添加该爬虫到数据库
+			spider = model.Spider{
+				Id:          bson.NewObjectId(),
+				Name:        spiderName,
+				DisplayName: configData.DisplayName,
+				Type:        constants.Customized,
+				Col:         configData.Col,
+				Src:         spiderPath,
+				Remark:      configData.Remark,
+				ProjectId:   bson.ObjectIdHex(constants.ObjectIdNull),
+				FileId:      bson.ObjectIdHex(constants.ObjectIdNull),
+				Cmd:         configData.Cmd,
+			}
+			if err := spider.Add(); err != nil {
+				log.Errorf("add spider error: " + err.Error())
+				debug.PrintStack()
+				continue
+			}
+
+			// 上传爬虫到GridFS
+			if err := UploadSpiderToGridFsFromMaster(spider); err != nil {
+				log.Errorf("upload spider error: " + err.Error())
+				debug.PrintStack()
+				continue
+			}
+		} else if configData.Type == constants.Configurable || configData.Type == "config" {
+			// 添加该爬虫到数据库
+			spider = model.Spider{
+				Id:          bson.NewObjectId(),
+				Name:        configData.Name,
+				DisplayName: configData.DisplayName,
+				Type:        constants.Configurable,
+				Col:         configData.Col,
+				Src:         spiderPath,
+				Remark:      configData.Remark,
+				ProjectId:   bson.ObjectIdHex(constants.ObjectIdNull),
+				FileId:      bson.ObjectIdHex(constants.ObjectIdNull),
+				Config:      configData,
+			}
+			if err := spider.Add(); err != nil {
+				log.Errorf("add spider error: " + err.Error())
+				debug.PrintStack()
+				continue
+			}
+
+			// 根据序列化后的数据处理爬虫文件
+			if err := ProcessSpiderFilesFromConfigData(spider, configData); err != nil {
+				log.Errorf("add spider error: " + err.Error())
+				debug.PrintStack()
+				continue
+			}
+		}
+	}
+
+	// 发布所有爬虫
+	PublishAllSpiders()
+}
+
 // 启动爬虫服务
 func InitSpiderService() error {
 	// 构造定时任务执行器
-	c := cron.New(cron.WithSeconds())
-	if _, err := c.AddFunc("0 * * * * *", PublishAllSpiders); err != nil {
+	cPub := cron.New(cron.WithSeconds())
+	if _, err := cPub.AddFunc("0 * * * * *", PublishAllSpiders); err != nil {
 		return err
 	}
+
 	// 启动定时任务
-	c.Start()
+	cPub.Start()
+
+	if model.IsMaster() && viper.GetString("setting.demoSpiders") == "Y" {
+		// 初始化Demo爬虫
+		InitDemoSpiders()
+	}
+
+	if model.IsMaster() {
+		// 构造 Git 定时任务
+		GitCron = &GitCronScheduler{
+			cron: cron.New(cron.WithSeconds()),
+		}
+
+		// 启动 Git 定时任务
+		if err := GitCron.Start(); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

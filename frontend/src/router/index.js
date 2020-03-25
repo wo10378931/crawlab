@@ -48,31 +48,21 @@ export const constantRouterMap = [
     ]
   },
   {
-    path: '/nodes',
+    path: '/projects',
     component: Layout,
     meta: {
-      title: 'Node',
-      icon: 'fa fa-server'
+      title: 'Project',
+      icon: 'fa fa-gear'
     },
     children: [
       {
         path: '',
-        name: 'NodeList',
-        component: () => import('../views/node/NodeList'),
+        name: 'Project',
+        component: () => import('../views/project/ProjectList'),
         meta: {
-          title: 'Nodes',
-          icon: 'fa fa-server'
+          title: 'Project',
+          icon: 'fa fa-code-fork'
         }
-      },
-      {
-        path: ':id',
-        name: 'NodeDetail',
-        component: () => import('../views/node/NodeDetail'),
-        meta: {
-          title: 'Node Detail',
-          icon: 'fa fa-circle-o'
-        },
-        hidden: true
       }
     ]
   },
@@ -155,21 +145,49 @@ export const constantRouterMap = [
     ]
   },
   {
-    path: '/sites',
+    path: '/nodes',
     component: Layout,
-    hidden: true,
     meta: {
-      title: 'Site',
-      icon: 'fa fa-sitemap'
+      title: 'Node',
+      icon: 'fa fa-server'
     },
     children: [
       {
         path: '',
-        name: 'SiteList',
-        component: () => import('../views/site/SiteList'),
+        name: 'NodeList',
+        component: () => import('../views/node/NodeList'),
         meta: {
-          title: 'Sites',
-          icon: 'fa fa-sitemap'
+          title: 'Nodes',
+          icon: 'fa fa-server'
+        }
+      },
+      {
+        path: ':id',
+        name: 'NodeDetail',
+        component: () => import('../views/node/NodeDetail'),
+        meta: {
+          title: 'Node Detail',
+          icon: 'fa fa-circle-o'
+        },
+        hidden: true
+      }
+    ]
+  },
+  {
+    path: '/disclaimer',
+    component: Layout,
+    meta: {
+      title: 'Disclaimer',
+      icon: 'fa fa-exclamation-triangle'
+    },
+    children: [
+      {
+        path: '',
+        name: 'Disclaimer',
+        component: () => import('../views/doc/Disclaimer'),
+        meta: {
+          title: 'Disclaimer',
+          icon: 'fa fa-exclamation-triangle'
         }
       }
     ]
@@ -189,25 +207,6 @@ export const constantRouterMap = [
         meta: {
           title: 'Users',
           icon: 'fa fa-user'
-        }
-      }
-    ]
-  },
-  {
-    path: '/disclaimer',
-    component: Layout,
-    meta: {
-      title: 'Disclaimer',
-      icon: 'fa fa-exclamation-triangle'
-    },
-    children: [
-      {
-        path: '',
-        name: 'Disclaimer',
-        component: () => import('../views/doc/Disclaimer'),
-        meta: {
-          title: 'Disclaimer',
-          icon: 'fa fa-exclamation-triangle'
         }
       }
     ]

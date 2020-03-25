@@ -25,8 +25,8 @@
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="fileDialogVisible = false">{{$t('Cancel')}}</el-button>
-        <el-button type="primary" @click="onAddFile">{{$t('Confirm')}}</el-button>
+        <el-button size="small" @click="fileDialogVisible = false">{{$t('Cancel')}}</el-button>
+        <el-button size="small" type="primary" @click="onAddFile">{{$t('Confirm')}}</el-button>
       </span>
     </el-dialog>
 
@@ -34,6 +34,7 @@
       class="file-tree-wrapper"
     >
       <el-tree
+        class="tree"
         :data="computedFileTree"
         ref="tree"
         node-key="path"
@@ -87,33 +88,33 @@
           </el-popover>
         </span>
       </el-tree>
-      <el-popover trigger="click" placement="right"
-                  popper-class="create-item-popover" :visible-arrow="false">
-        <ul class="action-item-list">
-          <li class="action-item" @click="fileDialogVisible = true">
-            <font-awesome-icon icon="file-alt" color="rgba(3,47,98,.5)"/>
-            <span class="action-item-text">{{$t('Create File')}}</span>
-          </li>
-          <li class="action-item" @click="dirDialogVisible = true">
-            <font-awesome-icon :icon="['fa', 'folder']" color="rgba(3,47,98,.5)"/>
-            <span class="action-item-text">{{$t('Create Directory')}}</span>
-          </li>
-        </ul>
-        <div
-          class="add-btn-wrapper"
-          slot="reference"
-        >
+      <div
+        class="add-btn-wrapper"
+      >
+        <el-popover trigger="click" placement="right"
+                    popper-class="create-item-popover" :visible-arrow="false">
+          <ul class="action-item-list">
+            <li class="action-item" @click="fileDialogVisible = true">
+              <font-awesome-icon icon="file-alt" color="rgba(3,47,98,.5)"/>
+              <span class="action-item-text">{{$t('Create File')}}</span>
+            </li>
+            <li class="action-item" @click="dirDialogVisible = true">
+              <font-awesome-icon :icon="['fa', 'folder']" color="rgba(3,47,98,.5)"/>
+              <span class="action-item-text">{{$t('Create Directory')}}</span>
+            </li>
+          </ul>
           <el-button
             class="add-btn"
             size="small"
             type="primary"
             icon="el-icon-plus"
+            slot="reference"
             @click="onEmptyClick"
           >
             {{$t('Add')}}
           </el-button>
-        </div>
-      </el-popover>
+        </el-popover>
+      </div>
     </div>
 
     <div class="main-content">
@@ -196,7 +197,8 @@ export default {
       ignoreFileRegexList: [
         '__pycache__',
         'md5.txt',
-        '.pyc'
+        '.pyc',
+        '.git'
       ],
       activeFileNode: {},
       dirDialogVisible: false,
@@ -407,6 +409,33 @@ export default {
       this.isShowDelete = false
       this.showFile = false
       this.$st.sendEv('爬虫详情', '文件', '删除')
+    },
+    clickSpider (filepath) {
+      const node = this.$refs['tree'].getNode(filepath)
+      const data = node.data
+      this.onFileClick(data)
+      node.parent.expanded = true
+      this.$set(this.nodeExpandedDict, node.parent.data.path, true)
+      node.parent.parent.expanded = true
+      this.$set(this.nodeExpandedDict, node.parent.parent.data.path, true)
+    },
+    clickPipeline () {
+      const filename = 'pipelines.py'
+      for (let i = 0; i < this.computedFileTree.length; i++) {
+        const dataLv1 = this.computedFileTree[i]
+        const nodeLv1 = this.$refs['tree'].getNode(dataLv1.path)
+        if (dataLv1.is_dir) {
+          for (let j = 0; j < dataLv1.children.length; j++) {
+            const dataLv2 = dataLv1.children[j]
+            if (dataLv2.path.match(filename)) {
+              this.onFileClick(dataLv2)
+              nodeLv1.expanded = true
+              this.$set(this.nodeExpandedDict, dataLv1.path, true)
+              return
+            }
+          }
+        }
+      }
     }
   },
   async created () {

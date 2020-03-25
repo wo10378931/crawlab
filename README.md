@@ -2,7 +2,7 @@
 
 <p>
   <a href="https://hub.docker.com/r/tikazyq/crawlab/builds" target="_blank">
-    <img src="https://img.shields.io/docker/cloud/build/tikazyq/crawlab.svg?label=build&logo=docker">
+    <img src="https://github.com/crawlab-team/crawlab/workflows/Docker/badge.svg">
   </a>
   <a href="https://hub.docker.com/r/tikazyq/crawlab" target="_blank">
     <img src="https://img.shields.io/docker/pulls/tikazyq/crawlab?label=pulls&logo=docker">
@@ -34,10 +34,10 @@ Golang-based distributed web crawler management platform, supporting various lan
 
 ## Installation
 
-Two methods:
+Three methods:
 1. [Docker](http://docs.crawlab.cn/Installation/Docker.html) (Recommended)
 2. [Direct Deploy](http://docs.crawlab.cn/Installation/Direct.html) (Check Internal Kernel)
-3. [Kubernetes](https://juejin.im/post/5e0a02d851882549884c27ad) (Multi-Node Deployment)
+3. [Kubernetes](http://docs.crawlab.cn/Installation/Kubernetes.html) (Multi-Node Deployment)
 
 ### Pre-requisite (Docker)
 - Docker 18.03+
@@ -53,7 +53,7 @@ Two methods:
 
 ## Quick Start
 
-Please open the command line prompt and execute the command beloe. Make sure you have installed `docker-compose` in advance.
+Please open the command line prompt and execute the command below. Make sure you have installed `docker-compose` in advance.
 
 ```bash
 git clone https://github.com/crawlab-team/crawlab
@@ -140,6 +140,10 @@ For Docker Deployment details, please refer to [relevant documentation](https://
 
 ![](http://static-docs.crawlab.cn/file-edit.png)
 
+#### Task Log
+
+![](http://static-docs.crawlab.cn/task-log2.png)
+
 #### Task Results
 
 ![](https://raw.githubusercontent.com/tikazyq/crawlab-docs/master/images/task-results.png)
@@ -147,6 +151,10 @@ For Docker Deployment details, please refer to [relevant documentation](https://
 #### Cron Job
 
 ![](http://static-docs.crawlab.cn/schedule-v0.4.4.png)
+
+#### Language Installation
+
+![](http://static-docs.crawlab.cn/node-install-langs.png)
 
 #### Dependency Installation
 
@@ -241,13 +249,12 @@ The reason is that most of the existing platforms are depending on Scrapyd, whic
 
 Crawlab is easy to use, general enough to adapt spiders in any language and any framework. It has also a beautiful frontend interface for users to manage spiders much more easily. 
 
-|Framework | Type | Distributed | Frontend | Scrapyd-Dependent |
-|:---:|:---:|:---:|:---:|:---:|
-| [Crawlab](https://github.com/crawlab-team/crawlab) | Admin Platform | Y | Y | N
-| [ScrapydWeb](https://github.com/my8100/scrapydweb) | Admin Platform | Y | Y | Y
-| [SpiderKeeper](https://github.com/DormyMo/SpiderKeeper) | Admin Platform | Y | Y | Y
-| [Gerapy](https://github.com/Gerapy/Gerapy) | Admin Platform | Y | Y | Y
-| [Scrapyd](https://github.com/scrapy/scrapyd) | Web Service | Y | N | N/A
+|Framework | Technology | Pros | Cons | Github Stats |
+|:---|:---|:---|-----| :---- |
+| [Crawlab](https://github.com/crawlab-team/crawlab) | Golang + Vue|Not limited to Scrapy, available for all programming languages and frameworks. Beautiful UI interface. Naturally support distributed spiders. Support spider management, task management, cron job, result export, analytics, notifications, configurable spiders, online code editor, etc.|Not yet support spider versioning| ![](https://img.shields.io/github/stars/crawlab-team/crawlab) ![](https://img.shields.io/github/forks/crawlab-team/crawlab) |
+| [ScrapydWeb](https://github.com/my8100/scrapydweb) | Python Flask + Vue|Beautiful UI interface, built-in Scrapy log parser, stats and graphs for task execution, support node management, cron job, mail notification, mobile. Full-feature spider management platform.|Not support spiders other than Scrapy. Limited performance because of Python Flask backend.| ![](https://img.shields.io/github/stars/my8100/scrapydweb) ![](https://img.shields.io/github/forks/my8100/scrapydweb) |
+| [Gerapy](https://github.com/Gerapy/Gerapy) | Python Django + Vue|Gerapy is built by web crawler guru [Germey Cui](https://github.com/Germey). Simple installation and deployment. Beautiful UI interface. Support node management, code edit, configurable crawl rules, etc.|Again not support spiders other than Scrapy. A lot of bugs based on user feedback in v1.0. Look forward to improvement in v2.0| ![](https://img.shields.io/github/stars/Gerapy/Gerapy) ![](https://img.shields.io/github/forks/Gerapy/Gerapy) |
+| [SpiderKeeper](https://github.com/DormyMo/SpiderKeeper) | Python Flask|Open-source Scrapyhub. Concise and simple UI interface. Support cron job.|Perhaps too simplified, not support pagination, not support node management, not support spiders other than Scrapy.| ![](https://img.shields.io/github/stars/DormyMo/SpiderKeeper) ![](https://img.shields.io/github/forks/DormyMo/SpiderKeeper) |
 
 ## Contributors
 <a href="https://github.com/tikazyq">

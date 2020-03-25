@@ -71,7 +71,16 @@
       </div>
       <div class="lang">
         <span @click="setLang('zh')" :class="lang==='zh'?'active':''">中文</span>
+        |
         <span @click="setLang('en')" :class="lang==='en'?'active':''">English</span>
+      </div>
+      <div class="documentation">
+        <a href="http://docs.crawlab.cn" target="_blank">{{$t('Documentation')}}</a>
+      </div>
+      <div v-if="isShowMobileWarning" class="mobile-warning">
+        <el-alert type="error" :closable="false">
+          {{$t('You are running on a mobile device, which is not optimized yet. Please try with a laptop or desktop.')}}
+        </el-alert>
       </div>
     </el-form>
   </div>
@@ -121,7 +130,8 @@ export default {
         confirmPassword: [{ required: true, trigger: 'blur', validator: validateConfirmPass }]
       },
       loading: false,
-      pwdType: 'password'
+      pwdType: 'password',
+      isShowMobileWarning: false
     }
   },
   computed: {
@@ -179,7 +189,11 @@ export default {
     }
   },
   mounted () {
-    initCanvas()
+    if (window.innerWidth >= 1024) {
+      initCanvas()
+    } else {
+      this.isShowMobileWarning = true
+    }
   }
 }
 
@@ -352,7 +366,7 @@ const initCanvas = () => {
 </style>
 
 <style rel="stylesheet/scss" lang="scss" scoped>
-  $bg: transparent;
+  $bg: white;
   $dark_gray: #889aa4;
   $light_gray: #aaa;
   .login-container {
@@ -439,21 +453,44 @@ const initCanvas = () => {
     .lang {
       margin-top: 20px;
       text-align: center;
+      color: #666;
 
       span {
         cursor: pointer;
         margin: 10px;
-        color: #666;
         font-size: 14px;
       }
 
       span.active {
         font-weight: 600;
+        text-decoration: underline;
       }
 
       span:hover {
         text-decoration: underline;
       }
     }
+
+    .documentation {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 14px;
+      color: #409eff;
+      font-weight: bolder;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    .mobile-warning {
+      margin-top: 20px;
+    }
+
+  }
+</style>
+<style scoped>
+  .mobile-warning >>> .el-alert .el-alert__description {
+    font-size: 1.2rem;
   }
 </style>

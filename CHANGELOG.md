@@ -1,3 +1,72 @@
+# 0.4.8 (2020-03-11)
+### Features / Enhancement
+- **Support Installations of More Programming Languages**. Now users can install or pre-install more programming languages including Java, .Net Core and PHP.
+- **Installation UI Optimization**. Users can better view and manage installations on Node List page.
+- **More Git Support**. Allow users to view Git Commits record, and allow checkout to corresponding commit.
+- **Support Hostname Node Registration Type**. Users can set hostname as the node key as the unique identifier.
+- **RPC Support**. Added RPC support to better manage node communication.
+- **Run On Master Switch**. Users can determine whether to run tasks on master. If not, all tasks will be run only on worker nodes.
+- **Disabled Tutorial by Default**.
+- **Added Related Documentation Sidebar**.
+- **Loading Page Optimization**.
+
+### Bug Fixes
+- **Duplicated Nodes**. [#391](https://github.com/crawlab-team/crawlab/issues/391)
+- **Duplicated Spider Upload**. [#603](https://github.com/crawlab-team/crawlab/issues/603)
+- **Failure in dependencies installation results in unusable dependency installation functionalities.**. [#609](https://github.com/crawlab-team/crawlab/issues/609)
+- **Create Tasks for Offline Nodes**. [#622](https://github.com/crawlab-team/crawlab/issues/622)
+
+# 0.4.7 (2020-02-24)
+### Features / Enhancement
+- **Better Support for Scrapy**. Spiders identification, `settings.py` configuration, log level selection, spider selection. [#435](https://github.com/crawlab-team/crawlab/issues/435)
+- **Git Sync**. Allow users to sync git projects to Crawlab.
+- **Long Task Support**. Users can add long-task spiders which is supposed to run without finishing. [#425](https://github.com/crawlab-team/crawlab/issues/425)
+- **Spider List Optimization**. Tasks count by status, tasks detail popup, legend. [#425](https://github.com/crawlab-team/crawlab/issues/425)
+- **Upgrade Check**. Check latest version and notifiy users to upgrade.
+- **Spiders Batch Operation**. Allow users to run/stop spider tasks and delete spiders in batches.
+- **Copy Spiders**. Allow users to copy an existing spider to create a new one.
+- **Wechat Group QR Code**.
+
+### Bug Fixes
+- **Schedule Spider Selection Issue**. Fields not responding to spider change.
+- **Cron Jobs Conflict**. Possible bug when two spiders set to the same time of their cron jobs. [#515](https://github.com/crawlab-team/crawlab/issues/515) [#565](https://github.com/crawlab-team/crawlab/issues/565)
+- **Task Log Issue**. Different tasks write to the same log file if triggered at the same time. [#577](https://github.com/crawlab-team/crawlab/issues/577)
+- **Task List Filter Options Incomplete**.
+
+# 0.4.6 (2020-02-13)
+### Features / Enhancement
+- **SDK for Node.js**. Users can apply SDK in their Node.js spiders.
+- **Log Management Optimization**. Log search, error highlight, auto-scrolling.
+- **Task Execution Process Optimization**. Allow users to be redirected to task detail page after triggering a task.
+- **Task Display Optimization**. Added "Param" in the Latest Tasks table in the spider detail page. [#295](https://github.com/crawlab-team/crawlab/issues/295)
+- **Spider List Optimization**. Added "Update Time" and "Create Time" in spider list page.
+- **Page Loading Placeholder**. 
+
+### Bug Fixes
+- **Lost Focus in Schedule Configuration**. [#519](https://github.com/crawlab-team/crawlab/issues/519)
+- **Unable to Upload Spider using CLI**. [#524](https://github.com/crawlab-team/crawlab/issues/524)
+
+# 0.4.5 (2020-02-03)
+### Features / Enhancement
+- **Interactive Tutorial**. Guide users through the main functionalities of Crawlab.
+- **Global Environment Variables**. Allow users to set global environment variables, which will be passed into all spider programs. [#177](https://github.com/crawlab-team/crawlab/issues/177)
+- **Project**. Allow users to link spiders to projects. [#316](https://github.com/crawlab-team/crawlab/issues/316)
+- **Demo Spiders**. Added demo spiders when Crawlab is initialized. [#379](https://github.com/crawlab-team/crawlab/issues/379)
+- **User Admin Optimization**. Restrict privilleges of admin users. [#456](https://github.com/crawlab-team/crawlab/issues/456)
+- **Setting Page Optimization**.
+- **Task Results Optimization**.
+
+### Bug Fixes
+- **Unable to find spider file error**. [#485](https://github.com/crawlab-team/crawlab/issues/485)
+- **Click delete button results in redirect**. [#480](https://github.com/crawlab-team/crawlab/issues/480)
+- **Unable to create files in an empty spider**. [#479](https://github.com/crawlab-team/crawlab/issues/479)
+- **Download results error**. [#465](https://github.com/crawlab-team/crawlab/issues/465)
+- **crawlab-sdk CLI error**. [#458](https://github.com/crawlab-team/crawlab/issues/458)
+- **Page refresh issue**. [#441](https://github.com/crawlab-team/crawlab/issues/441)
+- **Results not support JSON**. [#202](https://github.com/crawlab-team/crawlab/issues/202)
+- **Getting all spider after deleting a spider**.
+- **i18n warning**.
+
 # 0.4.4 (2020-01-17)
 ### Features / Enhancement
 - **Email Notification**. Allow users to send email notifications.

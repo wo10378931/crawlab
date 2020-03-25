@@ -1,9 +1,13 @@
 <style lang="scss" scoped>
-  #changeContab {
+  #change-crontab {
     .language {
       position: absolute;
       right: 25px;
       z-index: 1;
+    }
+
+    .cron-wrapper {
+      margin-bottom: 10px;
     }
 
     .el-tabs {
@@ -40,8 +44,15 @@
   }
 </style>
 <template>
-  <div id="changeContab">
-    <!--        <el-button class="language" type="text" @click="i18n=(i18n==='en'?'cn':'en')">{{i18n}}</el-button>-->
+  <div id="change-crontab">
+    <div class="cron-wrapper">
+      <label>
+        {{$t('Cron Expression')}}:
+      </label>
+      <el-tag type="success" size="small">
+        {{cron}}
+      </el-tag>
+    </div>
     <el-tabs type="border-card">
       <el-tab-pane>
         <span slot="label"><i class="el-icon-date"></i> {{text.Minutes.name}}</span>
@@ -388,15 +399,28 @@ export default {
     }
   },
   methods: {
-    getValue () {
-      return this.cron
-    },
     change () {
       this.$emit('change', this.cron)
       this.close()
     },
     close () {
       this.$emit('close')
+    },
+    submit () {
+      if (!this.validate()) {
+        this.$message.error(this.$t('Cron expression is invalid'))
+        return false
+      }
+      this.$emit('submit', this.cron)
+      return true
+    },
+    validate () {
+      if (!this.minutesText) return false
+      if (!this.hoursText) return false
+      if (!this.daysText) return false
+      if (!this.monthsText) return false
+      if (!this.weeksText) return false
+      return true
     },
     updateCronItem (key, value) {
       if (value === undefined) {

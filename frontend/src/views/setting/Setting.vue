@@ -1,27 +1,39 @@
 <template>
   <div class="app-container">
-    <!-- 新增全局变量 -->
+    <!--tour-->
+    <v-tour
+      name="setting"
+      :steps="tourSteps"
+      :callbacks="tourCallbacks"
+      :options="$utils.tour.getOptions(true)"
+    />
+    <!--./tour-->
+
+    <!--新增全局变量-->
     <el-dialog :title="$t('Add Global Variable')"
                :visible.sync="addDialogVisible">
       <el-form label-width="80px" ref="globalVariableForm">
-        <el-form-item label="Key">
+        <el-form-item :label="$t('Key')">
           <el-input size="small" v-model="globalVariableForm.key"/>
         </el-form-item>
-        <el-form-item label="Value">
+        <el-form-item :label="$t('Value')">
           <el-input size="small" v-model="globalVariableForm.value"/>
         </el-form-item>
-        <el-form-item label="Remark">
+        <el-form-item :label="$t('Remark')">
           <el-input size="small" v-model="globalVariableForm.remark"/>
         </el-form-item>
         <el-form-item>
-          <el-button @click="addDialogVisible = false" type="danger" size="small">{{$t('Cancel')}}</el-button>
-          <el-button @click="addGlobalVariableHandle(false)" type="success" size="small">{{$t('Save')}}</el-button>
+          <div style="text-align: right">
+            <el-button @click="addDialogVisible = false" type="danger" size="small">{{$t('Cancel')}}</el-button>
+            <el-button @click="addGlobalVariableHandle(false)" type="success" size="small">{{$t('Save')}}</el-button>
+          </div>
         </el-form-item>
       </el-form>
     </el-dialog>
+    <!--./新增全局变量-->
 
-    <el-tabs v-model="activeName" @tab-click="tabActiveHandle">
-      <el-tab-pane :label="$t('Password Settings')" name="passwordSetting">
+    <el-tabs v-model="activeName" @tab-click="tabActiveHandle" type="border-card">
+      <el-tab-pane :label="$t('General')" name="general">
         <el-form :model="userInfo" class="setting-form" ref="setting-form" label-width="200px" :rules="rules"
                  inline-message>
           <el-form-item prop="username" :label="$t('Username')">
@@ -30,9 +42,32 @@
           <el-form-item prop="password" :label="$t('Password')">
             <el-input v-model="userInfo.password" type="password" :placeholder="$t('Password')"></el-input>
           </el-form-item>
+          <el-form-item :label="$t('Allow Sending Statistics')">
+            <el-switch
+              v-model="isAllowSendingStatistics"
+              @change="onAllowSendingStatisticsChange"
+              active-color="#67C23A"
+              inactive-color="#909399"
+            />
+          </el-form-item>
+          <el-form-item :label="$t('Enable Tutorial')">
+            <el-switch
+              v-model="isEnableTutorial"
+              @change="onEnableTutorialChange"
+              active-color="#67C23A"
+              inactive-color="#909399"
+            />
+          </el-form-item>
+          <el-form-item>
+            <div style="text-align: right">
+              <el-button type="success" size="small" @click="saveUserInfo">
+                {{$t('Save')}}
+              </el-button>
+            </div>
+          </el-form-item>
         </el-form>
       </el-tab-pane>
-      <el-tab-pane :label="$t('Notify Settings')" name="notifySetting">
+      <el-tab-pane :label="$t('Notifications')" name="notify">
         <el-form :model="userInfo" class="setting-form" ref="setting-form" label-width="200px" :rules="rules"
                  inline-message>
           <el-form-item :label="$t('Notification Trigger Timing')">
@@ -63,44 +98,46 @@
                       :placeholder="$t('DingTalk Robot Webhook')"></el-input>
           </el-form-item>
           <el-form-item prop="setting.wechat_robot_webhook" :label="$t('Wechat Robot Webhook')">
-            <el-input v-model="userInfo.setting.wechat_robot_webhook" :placeholder="$t('Wechat Robot Webhook')"></el-input>
+            <el-input v-model="userInfo.setting.wechat_robot_webhook"
+                      :placeholder="$t('Wechat Robot Webhook')"></el-input>
+          </el-form-item>
+          <el-form-item>
+            <div style="text-align: right">
+              <el-button type="success" size="small" @click="saveUserInfo">
+                {{$t('Save')}}
+              </el-button>
+            </div>
           </el-form-item>
         </el-form>
       </el-tab-pane>
-      <el-tab-pane :label="$t('Global Variable')" name="globalVariable">
-        <el-form :inline="true">
-          <el-form-item>
-            <el-button size="mini" @click="addGlobalVariableHandle(true)"
-                       type="success">
-              {{$t('Add')}}
-            </el-button>
-          </el-form-item>
-        </el-form>
+      <el-tab-pane :label="$t('Global Variable')" name="global-variable">
+        <div style="text-align: right;margin-bottom: 10px">
+          <el-button size="small" @click="addGlobalVariableHandle(true)"
+                     icon="el-icon-plus"
+                     type="primary">
+            {{$t('Add')}}
+          </el-button>
+          <el-button size="small" type="success" @click="saveUserInfo">{{$t('Save')}}</el-button>
+        </div>
         <el-table :data="globalVariableList" border>
-          <el-table-column prop="key" label="Key"/>
-          <el-table-column prop="value" label="Value"/>
-          <el-table-column prop="remark" label="Remark"/>
+          <el-table-column prop="key" :label="$t('Key')"/>
+          <el-table-column prop="value" :label="$t('Value')"/>
+          <el-table-column prop="remark" :label="$t('Remark')"/>
           <el-table-column prop="" :label="$t('Action')" width="80">
             <template slot-scope="scope">
-              <el-button @click="deleteGlobalVariableHandle(scope.row._id)" icon="el-icon-delete" type="danger" size="mini"></el-button>
+              <el-button @click="deleteGlobalVariableHandle(scope.row._id)" icon="el-icon-delete" type="danger"
+                         size="mini"></el-button>
             </template>
           </el-table-column>
         </el-table>
       </el-tab-pane>
     </el-tabs>
-    <el-form :model="userInfo" class="setting-form" ref="setting-form" label-width="200px" :rules="rules"
-             inline-message v-if="activeName !== 'globalVariable'">
-      <el-form-item>
-        <div class="buttons">
-          <el-button size="small" type="success" @click="saveUserInfo">{{$t('Save')}}</el-button>
-        </div>
-      </el-form-item>
-    </el-form>
   </div>
 </template>
 
 <script>
 import { mapState } from 'vuex'
+
 export default {
   name: 'Setting',
   data () {
@@ -145,8 +182,48 @@ export default {
         'setting.wechat_robot_webhook': [{ trigger: 'blur', validator: validateWechatRobotWebhook }]
       },
       isShowDingTalkAppSecret: false,
-      activeName: 'passwordSetting',
-      addDialogVisible: false
+      activeName: 'general',
+      addDialogVisible: false,
+      tourSteps: [
+        {
+          target: '#tab-general',
+          content: this.$t('Here you can set your general settings.'),
+          params: {
+            placement: 'right'
+          }
+        },
+        {
+          target: '#tab-notify',
+          content: this.$t('In this tab you can configure your notification settings.')
+        },
+        {
+          target: '#tab-global-variable',
+          content: this.$t('Here you can add/edit/delete global environment variables which will be passed into your spider programs.')
+        }
+      ],
+      tourCallbacks: {
+        onStop: () => {
+          this.$utils.tour.finishTour('setting')
+        },
+        onPreviousStep: (currentStep) => {
+          if (currentStep === 1) {
+            this.activeName = 'password'
+          } else if (currentStep === 2) {
+            this.activeName = 'notify'
+          }
+          this.$utils.tour.prevStep('setting', currentStep)
+        },
+        onNextStep: (currentStep) => {
+          if (currentStep === 0) {
+            this.activeName = 'notify'
+          } else if (currentStep === 1) {
+            this.activeName = 'global-variable'
+          }
+          this.$utils.tour.nextStep('setting', currentStep)
+        }
+      },
+      isAllowSendingStatistics: localStorage.getItem('useStats') === '1',
+      isEnableTutorial: localStorage.getItem('enableTutorial') === '1'
     }
   },
   computed: {
@@ -154,6 +231,11 @@ export default {
       'globalVariableList',
       'globalVariableForm'
     ])
+  },
+  watch: {
+    userInfoStr () {
+      this.saveUserInfo()
+    }
   },
   methods: {
     deleteGlobalVariableHandle (id) {
@@ -165,7 +247,8 @@ export default {
         this.$store.dispatch('user/deleteGlobalVariable', id).then(() => {
           this.$store.dispatch('user/getGlobalVariable')
         })
-      }).catch(() => {})
+      }).catch(() => {
+      })
     },
     addGlobalVariableHandle (isShow) {
       if (isShow) {
@@ -206,12 +289,33 @@ export default {
       })
       this.$st.sendEv('设置', '保存')
     },
-    tabActiveHandle () {}
+    tabActiveHandle () {
+    },
+    onAllowSendingStatisticsChange (value) {
+      if (value) {
+        this.$st.sendPv('/allow_stats')
+        this.$st.sendEv('全局', '允许/禁止统计', '允许')
+      } else {
+        this.$st.sendPv('/disallow_stats')
+        this.$st.sendEv('全局', '允许/禁止统计', '禁止')
+      }
+      this.$message.success(this.$t('Saved successfully'))
+      localStorage.setItem('useStats', value ? '1' : '0')
+    },
+    onEnableTutorialChange (value) {
+      this.$message.success(this.$t('Saved successfully'))
+      localStorage.setItem('enableTutorial', value ? '1' : '0')
+    }
   },
   async created () {
     await this.$store.dispatch('user/getInfo')
-    this.$store.dispatch('user/getGlobalVariable')
+    await this.$store.dispatch('user/getGlobalVariable')
     this.getUserInfo()
+  },
+  mounted () {
+    if (!this.$utils.tour.isFinishedTour('setting')) {
+      this.$utils.tour.startTour(this, 'setting')
+    }
   }
 }
 </script>
