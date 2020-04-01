@@ -227,6 +227,11 @@ export default {
   'Public Spiders': '公共爬虫',
   'Is Public': '是否公共',
   'Owner': '所有者',
+  'Convert to Customized': '转化为自定义',
+  'Is De-Duplicated': '是否去重',
+  'Please enter de-duplicated field': '请输入去重字段',
+  'Overwrite': '覆盖',
+  'Ignore': '忽略',
 
   // 爬虫列表
   'Name': '名称',
@@ -261,6 +266,9 @@ export default {
   'Empty results': '空结果',
   'Navigate to Spider': '导航到爬虫',
   'Navigate to Node': '导航到节点',
+  'Restart': '重新运行',
+  'Redirect to task detail': '跳转到任务详情页',
+  'Retry (Maximum 5 Times)': '是否重试（最多 5 次）',
 
   // 任务列表
   'Node': '节点',
@@ -297,6 +305,7 @@ export default {
   'Cron': 'Cron',
   'Cron Expression': 'Cron 表达式',
   'Cron expression is invalid': 'Cron 表达式不正确',
+  'View Tasks': '查看任务',
 
   // 网站
   'Site': '网站',
@@ -374,7 +383,11 @@ export default {
   'Are you sure to delete this node?': '你确定要删除该节点?',
   'Are you sure to run this spider?': '你确定要运行该爬虫?',
   'Are you sure to delete this file/directory?': '你确定要删除该文件/文件夹?',
+  'Are you sure to convert this spider to customized spider?': '你确定要转化该爬虫为自定义爬虫?',
+  'Are you sure to delete this task?': '您确定要删除该任务?',
   'Added spider successfully': '成功添加爬虫',
+  'Converted successfully': '成功转化',
+  'Converted unsuccessfully': '未成功转化',
   'Uploaded spider files successfully': '成功上传爬虫文件',
   'Node info has been saved successfully': '节点信息已成功保存',
   'A task has been scheduled successfully': '已经成功派发一个任务',

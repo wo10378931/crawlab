@@ -13,11 +13,12 @@ import (
 )
 
 type TaskListRequestData struct {
-	PageNum  int    `form:"page_num"`
-	PageSize int    `form:"page_size"`
-	NodeId   string `form:"node_id"`
-	SpiderId string `form:"spider_id"`
-	Status   string `form:"status"`
+	PageNum    int    `form:"page_num"`
+	PageSize   int    `form:"page_size"`
+	NodeId     string `form:"node_id"`
+	SpiderId   string `form:"spider_id"`
+	ScheduleId string `form:"schedule_id"`
+	Status     string `form:"status"`
 }
 
 type TaskResultsRequestData struct {
@@ -50,6 +51,9 @@ func GetTaskList(c *gin.Context) {
 	// 根据任务状态获取task列表
 	if data.Status != "" {
 		query["status"] = data.Status
+	}
+	if data.ScheduleId != "" {
+		query["schedule_id"] = bson.ObjectIdHex(data.ScheduleId)
 	}
 
 	// 获取校验
@@ -231,12 +235,12 @@ func DeleteTask(c *gin.Context) {
 
 func GetTaskLog(c *gin.Context) {
 	id := c.Param("id")
-	logStr, err := services.GetTaskLog(id)
+	logItems, err := services.GetTaskLog(id)
 	if err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
 		return
 	}
-	HandleSuccessData(c, logStr)
+	HandleSuccessData(c, logItems)
 }
 
 func GetTaskResults(c *gin.Context) {
@@ -344,6 +348,18 @@ func CancelTask(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := services.CancelTask(id); err != nil {
+		HandleError(http.StatusInternalServerError, c, err)
+		return
+	}
+	HandleSuccess(c)
+}
+
+func RestartTask(c *gin.Context) {
+	id := c.Param("id")
+
+	uid := services.GetCurrentUserId(c)
+
+	if err := services.RestartTask(id, uid); err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
 		return
 	}

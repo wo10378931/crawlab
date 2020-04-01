@@ -6,7 +6,7 @@ const state = {
   taskList: [],
   taskListTotalCount: 0,
   taskForm: {},
-  taskLog: '',
+  taskLog: [],
   currentLogIndex: 0,
   taskResultsData: [],
   taskResultsColumns: [],
@@ -15,7 +15,8 @@ const state = {
   filter: {
     node_id: '',
     spider_id: '',
-    status: ''
+    status: '',
+    schedule_id: ''
   },
   // pagination
   pageNum: 1,
@@ -40,12 +41,13 @@ const getters = {
     return keys
   },
   logData (state) {
-    const data = state.taskLog.split('\n')
+    const data = state.taskLog
       .map((d, i) => {
         return {
           index: i + 1,
-          data: d,
-          active: state.currentLogIndex === i + 1
+          active: state.currentLogIndex === i + 1,
+          data: d.msg,
+          ...d
         }
       })
     if (state.taskForm && state.taskForm.status === 'running') {
@@ -122,7 +124,8 @@ const actions = {
       page_size: state.pageSize,
       node_id: state.filter.node_id || undefined,
       spider_id: state.filter.spider_id || undefined,
-      status: state.filter.status || undefined
+      status: state.filter.status || undefined,
+      schedule_id: state.filter.schedule_id || undefined
     })
       .then(response => {
         commit('SET_TASK_LIST', response.data.data || [])
@@ -140,10 +143,16 @@ const actions = {
       ids: ids
     })
   },
+  restartTask ({ state, dispatch }, id) {
+    return request.post(`/tasks/${id}/restart`)
+      .then(() => {
+        dispatch('getTaskList')
+      })
+  },
   getTaskLog ({ state, commit }, id) {
     return request.get(`/tasks/${id}/log`)
       .then(response => {
-        commit('SET_TASK_LOG', response.data.data)
+        commit('SET_TASK_LOG', response.data.data || [])
       })
   },
   getTaskResults ({ state, commit }, id) {

@@ -52,7 +52,7 @@
                 :disabled="spiderForm.is_scrapy"
               />
             </el-form-item>
-            <el-form-item :label="$t('Results')" prop="col">
+            <el-form-item :label="$t('Results')" prop="col" required>
               <el-input id="col" v-model="spiderForm.col" :placeholder="$t('Results')"/>
             </el-form-item>
             <el-form-item :label="$t('Upload Zip File')" label-width="120px" name="site">
@@ -1003,7 +1003,7 @@ export default {
         await this.$store.dispatch('spider/deleteSpider', row._id)
         this.$message({
           type: 'success',
-          message: 'Deleted successfully'
+          message: this.$t('Deleted successfully')
         })
         await this.getList()
         this.$st.sendEv('爬虫列表', '删除爬虫')

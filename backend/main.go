@@ -34,31 +34,13 @@ func main() {
 		panic(err)
 	}
 	log.Info("initialized config successfully")
-
-	// 初始化日志设置
-	logLevel := viper.GetString("log.level")
-	if logLevel != "" {
-		log.SetLevelFromString(logLevel)
-	}
-	log.Info("initialized log config successfully")
-	if viper.GetString("log.isDeletePeriodically") == "Y" {
-		err := services.InitDeleteLogPeriodically()
-		if err != nil {
-			log.Error("init DeletePeriodically failed")
-			panic(err)
-		}
-		log.Info("initialized periodically cleaning log successfully")
-	} else {
-		log.Info("periodically cleaning log is switched off")
-	}
-
 	// 初始化Mongodb数据库
 	if err := database.InitMongo(); err != nil {
 		log.Error("init mongodb error:" + err.Error())
 		debug.PrintStack()
 		panic(err)
 	}
-	log.Info("initialized MongoDB successfully")
+	log.Info("initialized mongodb successfully")
 
 	// 初始化Redis数据库
 	if err := database.InitRedis(); err != nil {
@@ -66,7 +48,14 @@ func main() {
 		debug.PrintStack()
 		panic(err)
 	}
-	log.Info("initialized Redis successfully")
+	log.Info("initialized redis successfully")
+
+	// 初始化日志设置
+	if err := services.InitLogService(); err != nil {
+		log.Error("init log error:" + err.Error())
+		panic(err)
+	}
+	log.Info("initialized log successfully")
 
 	if model.IsMaster() {
 		// 初始化定时任务
@@ -231,6 +220,7 @@ func main() {
 				authGroup.GET("/tasks/:id/log", routes.GetTaskLog)                          // 任务日志
 				authGroup.GET("/tasks/:id/results", routes.GetTaskResults)                  // 任务结果
 				authGroup.GET("/tasks/:id/results/download", routes.DownloadTaskResultsCsv) // 下载任务结果
+				authGroup.POST("/tasks/:id/restart", routes.RestartTask)                    // 重新开始任务
 			}
 			// 定时任务
 			{

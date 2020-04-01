@@ -433,6 +433,28 @@ func CopySpider(spider model.Spider, newName string) error {
 	return nil
 }
 
+func UpdateSpiderDedup(spider model.Spider) error {
+	s, c := database.GetCol(spider.Col)
+	defer s.Close()
+
+	if !spider.IsDedup {
+		_ = c.DropIndex(spider.DedupField)
+		//if err := c.DropIndex(spider.DedupField); err != nil {
+		//	return err
+		//}
+		return nil
+	}
+
+	if err := c.EnsureIndex(mgo.Index{
+		Key:    []string{spider.DedupField},
+		Unique: true,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func InitDemoSpiders() {
 	// 添加Demo爬虫
 	templateSpidersDir := "./template/spiders"
