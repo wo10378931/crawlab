@@ -16,28 +16,41 @@
           <el-input v-model="spiderForm._id" :placeholder="$t('Spider ID')" disabled></el-input>
         </el-form-item>
         <el-form-item :label="$t('Spider Name')">
-          <el-input v-model="spiderForm.display_name" :placeholder="$t('Spider Name')" :disabled="isView"></el-input>
+          <el-input v-model="spiderForm.display_name" :placeholder="$t('Spider Name')" :disabled="isView || isPublic"/>
+        </el-form-item>
+        <el-form-item :label="$t('Project')" prop="project_id" required>
+          <el-select
+            v-model="spiderForm.project_id"
+            :placeholder="$t('Project')"
+            filterable
+            :disabled="isView || isPublic"
+          >
+            <el-option
+              v-for="p in projectList"
+              :key="p._id"
+              :value="p._id"
+              :label="p.name"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item :label="$t('Source Folder')">
           <el-input v-model="spiderForm.src" :placeholder="$t('Source Folder')" disabled></el-input>
         </el-form-item>
-        <el-form-item v-if="spiderForm.type === 'customized'" :label="$t('Execute Command')" prop="cmd" required
-                      :inline-message="true">
-          <el-input v-model="spiderForm.cmd" :placeholder="$t('Execute Command')"
-                    :disabled="isView"></el-input>
-        </el-form-item>
-        <el-form-item :label="$t('Results Collection')" prop="col" required :inline-message="true">
-          <el-input v-model="spiderForm.col" :placeholder="$t('Results Collection')"
-                    :disabled="isView"></el-input>
-        </el-form-item>
-        <el-form-item v-if="false" :label="$t('Site')">
-          <el-autocomplete v-model="spiderForm.site"
-                           :placeholder="$t('Site')"
-                           :fetch-suggestions="fetchSiteSuggestions"
-                           clearable
-                           :disabled="isView"
-                           @select="onSiteSelect">
-          </el-autocomplete>
+        <template v-if="spiderForm.type === 'customized'">
+          <el-form-item :label="$t('Execute Command')" prop="cmd" required :inline-message="true">
+            <el-input
+              v-model="spiderForm.cmd"
+              :placeholder="$t('Execute Command')"
+              :disabled="isView || spiderForm.is_scrapy || isPublic"
+            />
+          </el-form-item>
+        </template>
+        <el-form-item :label="$t('Results Collection')" prop="col">
+          <el-input
+            v-model="spiderForm.col"
+            :placeholder="$t('By default: ') + 'results_<spider_name>'"
+            :disabled="isView || isPublic"
+          />
         </el-form-item>
         <el-form-item :label="$t('Spider Type')">
           <el-select v-model="spiderForm.type" :placeholder="$t('Spider Type')" :disabled="true" clearable>
@@ -46,11 +59,103 @@
           </el-select>
         </el-form-item>
         <el-form-item :label="$t('Remark')">
-          <el-input type="textarea" v-model="spiderForm.remark" :placeholder="$t('Remark')"/>
+          <el-input
+            type="textarea"
+            v-model="spiderForm.remark"
+            :placeholder="$t('Remark')"
+            :disabled="isView || isPublic"
+          />
         </el-form-item>
+        <el-row>
+          <el-col :span="6">
+            <el-form-item v-if="spiderForm.type === 'customized' && !isView" :label="$t('Is Scrapy')" prop="is_scrapy">
+              <el-switch
+                v-model="spiderForm.is_scrapy"
+                active-color="#13ce66"
+                :disabled="isView || isPublic"
+                @change="onIsScrapyChange"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item v-if="!isView" :label="$t('Is Git')" prop="is_git">
+              <el-switch
+                v-model="spiderForm.is_git"
+                active-color="#13ce66"
+                :disabled="isView || isPublic"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item v-if="!isView" :label="$t('Is Long Task')" prop="is_long_task">
+              <el-switch
+                v-model="spiderForm.is_long_task"
+                active-color="#13ce66"
+                :disabled="isView || isPublic"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item v-if="!isView" :label="$t('De-Duplication')" prop="dedup_field"
+                      :rules="dedupRules">
+          <div style="display: flex; align-items: center; height: 40px">
+            <el-switch
+              v-model="spiderForm.is_dedup"
+              active-color="#13ce66"
+              :disabled="isView || isPublic"
+              @change="onIsDedupChange"
+            />
+            <el-select
+              v-if="spiderForm.is_dedup"
+              v-model="spiderForm.dedup_method"
+              active-color="#13ce66"
+              :disabled="isView || isPublic"
+              style="margin-left: 20px; width: 180px"
+            >
+              <el-option value="overwrite" :label="$t('Overwrite')"/>
+              <el-option value="ignore" :label="$t('Ignore')"/>
+            </el-select>
+            <el-input
+              v-if="spiderForm.is_dedup"
+              v-model="spiderForm.dedup_field"
+              :placeholder="$t('Please enter de-duplicated field')"
+              style="margin-left: 20px"
+            />
+          </div>
+        </el-form-item>
+        <el-form-item v-if="!isView" label="Web Hook">
+          <div style="display: flex; align-items: center; height: 40px">
+            <el-switch
+              v-model="spiderForm.is_web_hook"
+              active-color="#13ce66"
+              :disabled="isView || isPublic"
+            />
+            <el-input
+              v-if="spiderForm.is_web_hook"
+              v-model="spiderForm.web_hook_url"
+              :placeholder="$t('Please enter Web Hook URL')"
+              style="margin-left: 20px"
+            />
+          </div>
+        </el-form-item>
+        <el-row>
+          <el-col :span="6">
+            <el-form-item v-if="!isView" :label="$t('Is Public')" prop="is_public">
+              <el-switch
+                v-model="spiderForm.is_public"
+                active-color="#13ce66"
+                :disabled="isView || isPublic"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
     </el-row>
     <el-row class="button-container" v-if="!isView">
+      <el-button size="small" v-if="isShowRun && !isPublic" type="danger" @click="onCrawl"
+                 icon="el-icon-video-play" style="margin-right: 10px">
+        {{$t('Run')}}
+      </el-button>
       <el-upload
         v-if="spiderForm.type === 'customized'"
         :action="$request.baseUrl + `/spiders/${spiderForm._id}/upload`"
@@ -61,16 +166,11 @@
         :file-list="fileList"
         style="display:inline-block;margin-right:10px"
       >
-        <el-button size="normal" type="primary" icon="el-icon-upload" v-loading="uploadLoading">
+        <el-button v-if="!isPublic" size="small" type="primary" icon="el-icon-upload" v-loading="uploadLoading">
           {{$t('Upload')}}
         </el-button>
       </el-upload>
-      <el-button size="normal" v-if="isShowRun" type="danger" @click="onCrawl"
-                 icon="el-icon-video-play">
-        {{$t('Run')}}
-      </el-button>
-      <el-button size="normal" type="success" @click="onSave"
-                 icon="el-icon-check">
+      <el-button v-if="!isPublic" size="small" type="success" @click="onSave" icon="el-icon-check">
         {{$t('Save')}}
       </el-button>
     </el-row>
@@ -109,6 +209,17 @@ export default {
       }
       callback()
     }
+    const dedupValidator = (rule, value, callback) => {
+      if (!this.spiderForm.is_dedup) {
+        return callback()
+      } else {
+        if (value) {
+          return callback()
+        } else {
+          return callback(new Error('dedup field cannot be empty'))
+        }
+      }
+    }
     return {
       uploadLoading: false,
       fileList: [],
@@ -118,6 +229,9 @@ export default {
       ],
       cronRules: [
         { validator: cronValidator, trigger: 'blur' }
+      ],
+      dedupRules: [
+        { validator: dedupValidator, trigger: 'blur' }
       ]
     }
   },
@@ -126,14 +240,24 @@ export default {
       'spiderForm'
     ]),
     ...mapGetters('user', [
+      'userInfo',
       'token'
     ]),
+    ...mapState('project', [
+      'projectList'
+    ]),
+    isConfigurable () {
+      return this.spiderForm.type === 'configurable'
+    },
     isShowRun () {
       if (this.spiderForm.type === 'customized') {
         return !!this.spiderForm.cmd
       } else {
         return true
       }
+    },
+    isPublic () {
+      return this.spiderForm.is_public && this.spiderForm.username !== this.userInfo.username && this.userInfo.role !== 'admin'
     }
   },
   methods: {
@@ -142,15 +266,15 @@ export default {
       this.$st.sendEv('爬虫详情', '概览', '点击运行')
     },
     onSave () {
-      this.$refs['spiderForm'].validate(res => {
-        if (res) {
-          this.$store.dispatch('spider/editSpider')
-            .then(() => {
-              this.$message.success(this.$t('Spider info has been saved successfully'))
-            })
-            .catch(error => {
-              this.$message.error(error)
-            })
+      this.$refs['spiderForm'].validate(async valid => {
+        if (!valid) return
+        const res = await this.$store.dispatch('spider/editSpider')
+        if (!res.data.error) {
+          this.$message.success(this.$t('Spider info has been saved successfully'))
+        }
+        await this.$store.dispatch('spider/getSpiderData', this.$route.params.id)
+        if (this.spiderForm.is_scrapy) {
+          await this.$store.dispatch('spider/getSpiderScrapySpiders', this.$route.params.id)
         }
       })
       this.$st.sendEv('爬虫详情', '概览', '保存')
@@ -172,7 +296,7 @@ export default {
       this.spiderForm.site = item._id
     },
     onUploadSuccess () {
-      this.$store.dispatch('file/getFileList', this.spiderForm.src)
+      this.$store.dispatch('spider/getFileTree')
 
       this.uploadLoading = false
 
@@ -180,6 +304,25 @@ export default {
     },
     onUploadError () {
       this.uploadLoading = false
+    },
+    onIsScrapyChange (value) {
+      if (value) {
+        this.spiderForm.cmd = 'scrapy crawl'
+      }
+    },
+    onIsDedupChange (value) {
+      if (value && !this.spiderForm.dedup_method) {
+        this.spiderForm.dedup_method = 'overwrite'
+      }
+    }
+  },
+  async created () {
+    // fetch project list
+    await this.$store.dispatch('project/getProjectList')
+
+    // 兼容项目ID
+    if (!this.spiderForm.project_id) {
+      this.$set(this.spiderForm, 'project_id', '000000000000000000000000')
     }
   }
 }

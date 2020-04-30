@@ -22,6 +22,27 @@ func AddScheduleTask(s model.Schedule) func() {
 		// 生成任务ID
 		id := uuid.NewV4()
 
+		// 参数
+		var param string
+
+		// 爬虫
+		spider, err := model.GetSpider(s.SpiderId)
+		if err != nil {
+			return
+		}
+
+		// scrapy 爬虫
+		if spider.IsScrapy {
+			if s.ScrapySpider == "" {
+				log.Errorf("scrapy spider is not set")
+				debug.PrintStack()
+				return
+			}
+			param = s.ScrapySpider + " -L " + s.ScrapyLogLevel + " " + s.Param
+		} else {
+			param = s.Param
+		}
+
 		if s.RunType == constants.RunTypeAllNodes {
 			// 所有节点
 			nodes, err := model.GetNodeList(nil)
@@ -30,32 +51,30 @@ func AddScheduleTask(s model.Schedule) func() {
 			}
 			for _, node := range nodes {
 				t := model.Task{
-					Id:       id.String(),
-					SpiderId: s.SpiderId,
-					NodeId:   node.Id,
-					Param:    s.Param,
+					Id:         id.String(),
+					SpiderId:   s.SpiderId,
+					NodeId:     node.Id,
+					Param:      param,
+					UserId:     s.UserId,
+					RunType:    constants.RunTypeAllNodes,
+					ScheduleId: s.Id,
 				}
 
-				if err := AddTask(t); err != nil {
-					return
-				}
-				if err := AssignTask(t); err != nil {
-					log.Errorf(err.Error())
-					debug.PrintStack()
+				if _, err := AddTask(t); err != nil {
 					return
 				}
 			}
 		} else if s.RunType == constants.RunTypeRandom {
 			// 随机
 			t := model.Task{
-				Id:       id.String(),
-				SpiderId: s.SpiderId,
-				Param:    s.Param,
+				Id:         id.String(),
+				SpiderId:   s.SpiderId,
+				Param:      param,
+				UserId:     s.UserId,
+				RunType:    constants.RunTypeRandom,
+				ScheduleId: s.Id,
 			}
-			if err := AddTask(t); err != nil {
-				return
-			}
-			if err := AssignTask(t); err != nil {
+			if _, err := AddTask(t); err != nil {
 				log.Errorf(err.Error())
 				debug.PrintStack()
 				return
@@ -64,42 +83,22 @@ func AddScheduleTask(s model.Schedule) func() {
 			// 指定节点
 			for _, nodeId := range s.NodeIds {
 				t := model.Task{
-					Id:       id.String(),
-					SpiderId: s.SpiderId,
-					NodeId:   nodeId,
-					Param:    s.Param,
+					Id:         id.String(),
+					SpiderId:   s.SpiderId,
+					NodeId:     nodeId,
+					Param:      param,
+					UserId:     s.UserId,
+					RunType:    constants.RunTypeSelectedNodes,
+					ScheduleId: s.Id,
 				}
 
-				if err := AddTask(t); err != nil {
-					return
-				}
-
-				if err := AssignTask(t); err != nil {
-					log.Errorf(err.Error())
-					debug.PrintStack()
+				if _, err := AddTask(t); err != nil {
 					return
 				}
 			}
 		} else {
 			return
 		}
-
-		//node, err := model.GetNodeByKey(s.NodeKey)
-		//if err != nil || node.Id.Hex() == "" {
-		//	log.Errorf("get node by key error: %s", err.Error())
-		//	debug.PrintStack()
-		//	return
-		//}
-		//
-		//spider := model.GetSpiderByName(s.SpiderName)
-		//if spider == nil || spider.Id.Hex() == "" {
-		//	log.Errorf("get spider by name error: %s", err.Error())
-		//	debug.PrintStack()
-		//	return
-		//}
-		//
-		//// 同步ID到定时任务
-		//s.SyncNodeIdAndSpiderId(node, *spider)
 	}
 }
 
@@ -137,7 +136,7 @@ func (s *Scheduler) Start() error {
 func (s *Scheduler) AddJob(job model.Schedule) error {
 	spec := job.Cron
 
-	// 添加任务
+	// 添加定时任务
 	eid, err := s.cron.AddFunc(spec, AddScheduleTask(job))
 	if err != nil {
 		log.Errorf("add func task error: %s", err.Error())
@@ -147,7 +146,12 @@ func (s *Scheduler) AddJob(job model.Schedule) error {
 
 	// 更新EntryID
 	job.EntryId = eid
+
+	// 更新状态
 	job.Status = constants.ScheduleStatusRunning
+	job.Enabled = true
+
+	// 保存定时任务
 	if err := job.Save(); err != nil {
 		log.Errorf("job save error: %s", err.Error())
 		debug.PrintStack()
@@ -176,8 +180,8 @@ func ParserCron(spec string) error {
 	return nil
 }
 
-// 停止定时任务
-func (s *Scheduler) Stop(id bson.ObjectId) error {
+// 禁用定时任务
+func (s *Scheduler) Disable(id bson.ObjectId) error {
 	schedule, err := model.GetSchedule(id)
 	if err != nil {
 		return err
@@ -185,17 +189,22 @@ func (s *Scheduler) Stop(id bson.ObjectId) error {
 	if schedule.EntryId == 0 {
 		return errors.New("entry id not found")
 	}
+
+	// 从cron服务中删除该任务
 	s.cron.Remove(schedule.EntryId)
+
 	// 更新状态
 	schedule.Status = constants.ScheduleStatusStop
+	schedule.Enabled = false
+
 	if err = schedule.Save(); err != nil {
 		return err
 	}
 	return nil
 }
 
-// 运行任务
-func (s *Scheduler) Run(id bson.ObjectId) error {
+// 启用定时任务
+func (s *Scheduler) Enable(id bson.ObjectId) error {
 	schedule, err := model.GetSchedule(id)
 	if err != nil {
 		return err
@@ -218,6 +227,12 @@ func (s *Scheduler) Update() error {
 		return err
 	}
 
+	user, err := model.GetUserByUsername("admin")
+	if err != nil {
+		log.Errorf("get admin user error: %s", err.Error())
+		return err
+	}
+
 	// 遍历任务列表
 	for i := 0; i < len(sList); i++ {
 		// 单个任务
@@ -225,6 +240,11 @@ func (s *Scheduler) Update() error {
 
 		if job.Status == constants.ScheduleStatusStop {
 			continue
+		}
+
+		// 兼容以前版本
+		if job.UserId.Hex() == "" {
+			job.UserId = user.Id
 		}
 
 		// 添加到定时任务

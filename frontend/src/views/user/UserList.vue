@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <!--dialog-->
-    <el-dialog :visible.sync="dialogVisible" :title="$t('Edit User')">
+    <el-dialog :visible.sync="dialogVisible" width="640px" :title="$t('Edit User')">
       <el-form ref="form" :model="userForm" label-width="80px" :rules="rules" inline-message>
         <el-form-item prop="username" :label="$t('Username')" required>
           <el-input v-model="userForm.username" :placeholder="$t('Username')" :disabled="!isAdd"></el-input>
@@ -14,6 +14,9 @@
             <el-option value="admin" :label="$t('admin')"></el-option>
             <el-option value="normal" :label="$t('normal')"></el-option>
           </el-select>
+        </el-form-item>
+        <el-form-item prop="email" :label="$t('Email')">
+          <el-input v-model="userForm.email" :placeholder="$t('Email')"/>
         </el-form-item>
       </el-form>
       <template slot="footer">
@@ -47,7 +50,10 @@
           :label="$t('Role')"
         >
           <template slot-scope="scope">
-            <el-tag v-if="scope.row.role === 'admin'" type="primary">
+            <el-tag v-if="scope.row.username === 'admin'" type="success">
+              {{ $t('Super Admin') }}
+            </el-tag>
+            <el-tag v-else-if="scope.row.role === 'admin'" type="primary">
               {{ $t(scope.row.role) }}
             </el-tag>
             <el-tag v-else type="warning">
@@ -68,8 +74,20 @@
           fixed="right"
         >
           <template slot-scope="scope">
-            <el-button icon="el-icon-edit" type="warning" size="mini" @click="onEdit(scope.row)"></el-button>
-            <el-button icon="el-icon-delete" type="danger" size="mini" @click="onRemove(scope.row)"></el-button>
+            <el-button
+              v-if="isShowEdit(scope.row)"
+              icon="el-icon-edit"
+              type="warning"
+              size="mini"
+              @click="onEdit(scope.row)"
+            />
+            <el-button
+              v-if="isShowRemove(scope.row)"
+              icon="el-icon-delete"
+              type="danger"
+              size="mini"
+              @click="onRemove(scope.row)"
+            />
           </template>
         </el-table-column>
       </el-table>
@@ -92,7 +110,8 @@
 
 <script>
 import {
-  mapState
+  mapState,
+  mapGetters
 } from 'vuex'
 import dayjs from 'dayjs'
 
@@ -107,11 +126,20 @@ export default {
         callback()
       }
     }
+    const validateEmail = (rule, value, callback) => {
+      if (!value) return callback()
+      if (!value.match(/.+@.+/i)) {
+        callback(new Error(this.$t('Email format invalid')))
+      } else {
+        callback()
+      }
+    }
     return {
       dialogVisible: false,
       isAdd: false,
       rules: {
-        password: [{ validator: validatePass }]
+        password: [{ validator: validatePass }],
+        email: [{ validator: validateEmail }]
       }
     }
   },
@@ -120,6 +148,9 @@ export default {
       'userList',
       'userForm',
       'totalCount'
+    ]),
+    ...mapGetters('user', [
+      'userInfo'
     ]),
     pageSize: {
       get () {
@@ -205,6 +236,17 @@ export default {
       this.isAdd = true
       this.$store.commit('user/SET_USER_FORM', {})
       this.dialogVisible = true
+    },
+    onValidateEmail (value) {
+    },
+    isShowEdit (row) {
+      if (row.username === 'admin') {
+        return this.userInfo.username === 'admin'
+      }
+      return true
+    },
+    isShowRemove (row) {
+      return row.username !== 'admin'
     }
   },
   created () {
@@ -213,23 +255,21 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
   .filter {
     display: flex;
     justify-content: space-between;
     margin-bottom: 8px;
 
-  .filter-search {
-    width: 240px;
-  }
+    .filter-search {
+      width: 240px;
+    }
 
-  .right {
-
-  .btn {
-    margin-left: 10px;
-  }
-
-  }
+    .right {
+      .btn {
+        margin-left: 10px;
+      }
+    }
   }
 
   .el-table {

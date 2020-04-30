@@ -8,6 +8,13 @@ const (
 
 const (
 	Python = "python"
-	NodeJS = "node"
+	Nodejs = "node"
 	Java   = "java"
+)
+
+const (
+	InstallStatusNotInstalled    = "not-installed"
+	InstallStatusInstalling      = "installing"
+	InstallStatusInstallingOther = "installing-other"
+	InstallStatusInstalled       = "installed"
 )

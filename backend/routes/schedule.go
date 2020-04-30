@@ -9,7 +9,12 @@ import (
 )
 
 func GetScheduleList(c *gin.Context) {
-	results, err := model.GetScheduleList(nil)
+	query := bson.M{}
+
+	// 获取校验
+	query = services.GetAuthQuery(query, c)
+
+	results, err := model.GetScheduleList(query)
 	if err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
 		return
@@ -76,6 +81,9 @@ func PutSchedule(c *gin.Context) {
 		return
 	}
 
+	// 加入用户ID
+	item.UserId = services.GetCurrentUserId(c)
+
 	// 更新数据库
 	if err := model.AddSchedule(item); err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
@@ -110,9 +118,9 @@ func DeleteSchedule(c *gin.Context) {
 }
 
 // 停止定时任务
-func StopSchedule(c *gin.Context) {
+func DisableSchedule(c *gin.Context) {
 	id := c.Param("id")
-	if err := services.Sched.Stop(bson.ObjectIdHex(id)); err != nil {
+	if err := services.Sched.Disable(bson.ObjectIdHex(id)); err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
 		return
 	}
@@ -120,9 +128,9 @@ func StopSchedule(c *gin.Context) {
 }
 
 // 运行定时任务
-func RunSchedule(c *gin.Context) {
+func EnableSchedule(c *gin.Context) {
 	id := c.Param("id")
-	if err := services.Sched.Run(bson.ObjectIdHex(id)); err != nil {
+	if err := services.Sched.Enable(bson.ObjectIdHex(id)); err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
 		return
 	}

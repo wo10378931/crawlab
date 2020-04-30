@@ -6,6 +6,7 @@ import (
 	"crawlab/entity"
 	"crawlab/lib/cron"
 	"crawlab/model"
+	"crawlab/services/rpc"
 	"crawlab/utils"
 	"encoding/json"
 	"errors"
@@ -20,29 +21,10 @@ import (
 	"sync"
 )
 
-type PythonDepJsonData struct {
-	Info PythonDepJsonDataInfo `json:"info"`
-}
-
-type PythonDepJsonDataInfo struct {
-	Name    string `json:"name"`
-	Summary string `json:"summary"`
-	Version string `json:"version"`
-}
-
-type PythonDepNameDict struct {
-	Name   string `json:"name"`
-	Weight int    `json:"weight"`
-}
-
-type PythonDepNameDictSlice []PythonDepNameDict
-
-func (s PythonDepNameDictSlice) Len() int           { return len(s) }
-func (s PythonDepNameDictSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s PythonDepNameDictSlice) Less(i, j int) bool { return s[i].Weight > s[j].Weight }
-
+// 系统信息 chan 映射
 var SystemInfoChanMap = utils.NewChanMap()
 
+// 从远端获取系统信息
 func GetRemoteSystemInfo(nodeId string) (sysInfo entity.SystemInfo, err error) {
 	// 发送消息
 	msg := entity.NodeMessage{
@@ -70,6 +52,7 @@ func GetRemoteSystemInfo(nodeId string) (sysInfo entity.SystemInfo, err error) {
 	return sysInfo, nil
 }
 
+// 获取系统信息
 func GetSystemInfo(nodeId string) (sysInfo entity.SystemInfo, err error) {
 	if IsMasterNode(nodeId) {
 		sysInfo, err = model.GetLocalSystemInfo()
@@ -79,28 +62,77 @@ func GetSystemInfo(nodeId string) (sysInfo entity.SystemInfo, err error) {
 	return
 }
 
+// 获取语言列表
 func GetLangList(nodeId string) []entity.Lang {
-	list := []entity.Lang{
-		{Name: "Python", ExecutableName: "python", ExecutablePath: "/usr/local/bin/python", DepExecutablePath: "/usr/local/bin/pip"},
-		{Name: "NodeJS", ExecutableName: "node", ExecutablePath: "/usr/local/bin/node"},
-		{Name: "Java", ExecutableName: "java", ExecutablePath: "/usr/local/bin/java"},
-	}
+	list := utils.GetLangList()
 	for i, lang := range list {
-		list[i].Installed = IsInstalledLang(nodeId, lang)
+		status, _ := GetLangInstallStatus(nodeId, lang)
+		list[i].InstallStatus = status
 	}
 	return list
 }
 
-func GetLangFromLangName(nodeId string, name string) entity.Lang {
-	langList := GetLangList(nodeId)
-	for _, lang := range langList {
-		if lang.ExecutableName == name {
-			return lang
+func GetLangInstallStatus(nodeId string, lang entity.Lang) (string, error) {
+	if IsMasterNode(nodeId) {
+		lang := rpc.GetLangLocal(lang)
+		return lang.InstallStatus, nil
+	} else {
+		lang, err := rpc.GetLangRemote(nodeId, lang)
+		if err != nil {
+			return "", err
 		}
+		return lang.InstallStatus, nil
 	}
-	return entity.Lang{}
 }
 
+// 是否已安装该依赖
+func IsInstalledDep(installedDepList []entity.Dependency, dep entity.Dependency) bool {
+	for _, _dep := range installedDepList {
+		if strings.ToLower(_dep.Name) == strings.ToLower(dep.Name) {
+			return true
+		}
+	}
+	return false
+}
+
+// ========Python========
+
+// 初始化函数
+func InitDepsFetcher() error {
+	c := cron.New(cron.WithSeconds())
+	c.Start()
+	if _, err := c.AddFunc("0 */5 * * * *", UpdatePythonDepList); err != nil {
+		return err
+	}
+
+	go func() {
+		UpdatePythonDepList()
+	}()
+	return nil
+}
+
+type PythonDepJsonData struct {
+	Info PythonDepJsonDataInfo `json:"info"`
+}
+
+type PythonDepJsonDataInfo struct {
+	Name    string `json:"name"`
+	Summary string `json:"summary"`
+	Version string `json:"version"`
+}
+
+type PythonDepNameDict struct {
+	Name   string `json:"name"`
+	Weight int    `json:"weight"`
+}
+
+type PythonDepNameDictSlice []PythonDepNameDict
+
+func (s PythonDepNameDictSlice) Len() int           { return len(s) }
+func (s PythonDepNameDictSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s PythonDepNameDictSlice) Less(i, j int) bool { return s[i].Weight > s[j].Weight }
+
+// 获取Python本地依赖列表
 func GetPythonDepList(nodeId string, searchDepName string) ([]entity.Dependency, error) {
 	var list []entity.Dependency
 
@@ -129,22 +161,51 @@ func GetPythonDepList(nodeId string, searchDepName string) ([]entity.Dependency,
 		}
 	}
 
-	// 获取已安装依赖
-	installedDepList, err := GetPythonInstalledDepList(nodeId)
-	if err != nil {
-		return list, err
+	// 获取已安装依赖列表
+	var installedDepList []entity.Dependency
+	if IsMasterNode(nodeId) {
+		installedDepList, err = rpc.GetInstalledDepsLocal(constants.Python)
+		if err != nil {
+			return list, err
+		}
+	} else {
+		installedDepList, err = rpc.GetInstalledDepsRemote(nodeId, constants.Python)
+		if err != nil {
+			return list, err
+		}
 	}
 
-	// 从依赖源获取数据
-	var goSync sync.WaitGroup
+	// 根据依赖名排序
 	sort.Stable(depNameList)
+
+	// 遍历依赖名列表，取前20个
 	for i, depNameDict := range depNameList {
+		if i > 20 {
+			break
+		}
+		dep := entity.Dependency{
+			Name: depNameDict.Name,
+		}
+		dep.Installed = IsInstalledDep(installedDepList, dep)
+		list = append(list, dep)
+	}
+
+	// 从依赖源获取信息
+	//list, err = GetPythonDepListWithInfo(list)
+
+	return list, nil
+}
+
+// 获取Python依赖的源数据信息
+func GetPythonDepListWithInfo(depList []entity.Dependency) ([]entity.Dependency, error) {
+	var goSync sync.WaitGroup
+	for i, dep := range depList {
 		if i > 10 {
 			break
 		}
 		goSync.Add(1)
-		go func(depName string, n *sync.WaitGroup) {
-			url := fmt.Sprintf("https://pypi.org/pypi/%s/json", depName)
+		go func(i int, dep entity.Dependency, depList []entity.Dependency, n *sync.WaitGroup) {
+			url := fmt.Sprintf("https://pypi.org/pypi/%s/json", dep.Name)
 			res, err := req.Get(url)
 			if err != nil {
 				n.Done()
@@ -155,21 +216,41 @@ func GetPythonDepList(nodeId string, searchDepName string) ([]entity.Dependency,
 				n.Done()
 				return
 			}
-			dep := entity.Dependency{
-				Name:        depName,
-				Version:     data.Info.Version,
-				Description: data.Info.Summary,
-			}
-			dep.Installed = IsInstalledDep(installedDepList, dep)
-			list = append(list, dep)
+			depList[i].Version = data.Info.Version
+			depList[i].Description = data.Info.Summary
 			n.Done()
-		}(depNameDict.Name, &goSync)
+		}(i, dep, depList, &goSync)
 	}
 	goSync.Wait()
-
-	return list, nil
+	return depList, nil
 }
 
+func FetchPythonDepInfo(depName string) (entity.Dependency, error) {
+	url := fmt.Sprintf("https://pypi.org/pypi/%s/json", depName)
+	res, err := req.Get(url)
+	if err != nil {
+		log.Errorf(err.Error())
+		debug.PrintStack()
+		return entity.Dependency{}, err
+	}
+	var data PythonDepJsonData
+	if res.Response().StatusCode == 404 {
+		return entity.Dependency{}, errors.New("get depName from [https://pypi.org] error: 404")
+	}
+	if err := res.ToJSON(&data); err != nil {
+		log.Errorf(err.Error())
+		debug.PrintStack()
+		return entity.Dependency{}, err
+	}
+	dep := entity.Dependency{
+		Name:        depName,
+		Version:     data.Info.Version,
+		Description: data.Info.Summary,
+	}
+	return dep, nil
+}
+
+// 从Redis获取Python依赖列表
 func GetPythonDepListFromRedis() ([]string, error) {
 	var list []string
 
@@ -192,28 +273,7 @@ func GetPythonDepListFromRedis() ([]string, error) {
 	return list, nil
 }
 
-func IsInstalledLang(nodeId string, lang entity.Lang) bool {
-	sysInfo, err := GetSystemInfo(nodeId)
-	if err != nil {
-		return false
-	}
-	for _, exec := range sysInfo.Executables {
-		if exec.Path == lang.ExecutablePath {
-			return true
-		}
-	}
-	return false
-}
-
-func IsInstalledDep(installedDepList []entity.Dependency, dep entity.Dependency) bool {
-	for _, _dep := range installedDepList {
-		if strings.ToLower(_dep.Name) == strings.ToLower(dep.Name) {
-			return true
-		}
-	}
-	return false
-}
-
+// 从Python依赖源获取依赖列表并返回
 func FetchPythonDepList() ([]string, error) {
 	// 依赖URL
 	url := "https://pypi.tuna.tsinghua.edu.cn/simple"
@@ -251,6 +311,7 @@ func FetchPythonDepList() ([]string, error) {
 	return list, nil
 }
 
+// 更新Python依赖列表到Redis
 func UpdatePythonDepList() {
 	// 从依赖源获取列表
 	list, _ := FetchPythonDepList()
@@ -271,41 +332,43 @@ func UpdatePythonDepList() {
 	}
 }
 
-func GetPythonInstalledDepList(nodeId string) ([]entity.Dependency, error){
-	var list []entity.Dependency
+// ========./Python========
 
-	lang := GetLangFromLangName(nodeId, constants.Python)
-	if !IsInstalledLang(nodeId, lang) {
-		return list, errors.New("python is not installed")
+// ========Node.js========
+
+// 获取Nodejs本地依赖列表
+func GetNodejsDepList(nodeId string, searchDepName string) (depList []entity.Dependency, err error) {
+	// 执行shell命令
+	cmd := exec.Command("npm", "search", "--json", searchDepName)
+	outputBytes, _ := cmd.Output()
+
+	// 获取已安装依赖列表
+	var installedDepList []entity.Dependency
+	if IsMasterNode(nodeId) {
+		installedDepList, err = rpc.GetInstalledDepsLocal(constants.Nodejs)
+		if err != nil {
+			return depList, err
+		}
+	} else {
+		installedDepList, err = rpc.GetInstalledDepsRemote(nodeId, constants.Nodejs)
+		if err != nil {
+			return depList, err
+		}
 	}
-	cmd := exec.Command("pip", "freeze")
-	outputBytes, err := cmd.Output()
-	if err != nil {
+
+	// 反序列化
+	if err := json.Unmarshal(outputBytes, &depList); err != nil {
+		log.Errorf(err.Error())
 		debug.PrintStack()
-		return list, err
+		return depList, err
 	}
 
-	for _, line := range strings.Split(string(outputBytes), "\n") {
-		arr := strings.Split(line, "==")
-		if len(arr) < 2 {
-			continue
-		}
-		dep := entity.Dependency{
-			Name:      strings.ToLower(arr[0]),
-			Version:   arr[1],
-			Installed: true,
-		}
-		list = append(list, dep)
+	// 遍历安装列表
+	for i, dep := range depList {
+		depList[i].Installed = IsInstalledDep(installedDepList, dep)
 	}
 
-	return list, nil
+	return depList, nil
 }
 
-func InitDepsFetcher() error {
-	c := cron.New(cron.WithSeconds())
-	c.Start()
-	if _, err := c.AddFunc("0 */5 * * * *", UpdatePythonDepList); err != nil {
-		return err
-	}
-	return nil
-}
+// ========./Node.js========

@@ -6,6 +6,7 @@ import (
 	"crawlab/entity"
 	"crawlab/model"
 	"crawlab/model/config_spider"
+	"crawlab/services/spider_handler"
 	"crawlab/utils"
 	"errors"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 )
 
@@ -213,7 +215,11 @@ func ProcessSpiderFilesFromConfigData(spider model.Spider, configData entity.Con
 	var gfFile model.GridFs
 	if err := gf.Find(bson.M{"filename": spiderZipFileName}).One(&gfFile); err == nil {
 		// 已经存在文件，则删除
-		_ = gf.RemoveId(gfFile.Id)
+		if err := gf.RemoveId(gfFile.Id); err != nil {
+			log.Errorf("remove grid fs error: %s", err.Error())
+			debug.PrintStack()
+			return err
+		}
 	}
 
 	// 上传到GridFs
@@ -226,6 +232,17 @@ func ProcessSpiderFilesFromConfigData(spider model.Spider, configData entity.Con
 	// 保存爬虫 FileId
 	spider.FileId = fid
 	_ = spider.Save()
+
+	// 获取爬虫同步实例
+	spiderSync := spider_handler.SpiderSync{
+		Spider: spider,
+	}
+
+	// 获取gfFile
+	gfFile2 := model.GetGridFs(spider.FileId)
+
+	// 生成MD5
+	spiderSync.CreateMd5File(gfFile2.Md5)
 
 	return nil
 }

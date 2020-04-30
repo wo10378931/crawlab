@@ -1,9 +1,11 @@
 package spider_handler
 
 import (
+	"crawlab/constants"
 	"crawlab/database"
 	"crawlab/model"
 	"crawlab/utils"
+	"fmt"
 	"github.com/apex/log"
 	"github.com/globalsign/mgo/bson"
 	"github.com/satori/go.uuid"
@@ -11,8 +13,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime/debug"
+	"strings"
+	"sync"
 )
 
 const (
@@ -25,7 +30,7 @@ type SpiderSync struct {
 
 func (s *SpiderSync) CreateMd5File(md5 string) {
 	path := filepath.Join(viper.GetString("spider.path"), s.Spider.Name)
-	utils.CreateFilePath(path)
+	utils.CreateDirPath(path)
 
 	fileName := filepath.Join(path, Md5File)
 	file := utils.OpenFile(fileName)
@@ -36,6 +41,37 @@ func (s *SpiderSync) CreateMd5File(md5 string) {
 			debug.PrintStack()
 		}
 	}
+}
+
+func (s *SpiderSync) CheckIsScrapy() {
+	if s.Spider.Type == constants.Configurable {
+		return
+	}
+	if viper.GetString("setting.checkScrapy") != "Y" {
+		return
+	}
+	s.Spider.IsScrapy = utils.Exists(path.Join(s.Spider.Src, "scrapy.cfg"))
+	if s.Spider.IsScrapy {
+		s.Spider.Cmd = "scrapy crawl"
+	}
+	if err := s.Spider.Save(); err != nil {
+		log.Errorf(err.Error())
+		debug.PrintStack()
+		return
+	}
+}
+
+func (s *SpiderSync) AfterRemoveDownCreate() {
+	if model.IsMaster() {
+		s.CheckIsScrapy()
+	}
+}
+
+func (s *SpiderSync) RemoveDownCreate(md5 string) {
+	s.RemoveSpiderFile()
+	s.Download()
+	s.CreateMd5File(md5)
+	s.AfterRemoveDownCreate()
 }
 
 // 获得下载锁的key
@@ -60,10 +96,14 @@ func (s *SpiderSync) RemoveSpiderFile() {
 // 检测是否已经下载中
 func (s *SpiderSync) CheckDownLoading(spiderId string, fileId string) (bool, string) {
 	key := s.GetLockDownloadKey(spiderId)
-	if _, err := database.RedisClient.HGet("spider", key); err == nil {
-		return true, key
+	key2, err := database.RedisClient.HGet("spider", key)
+	if err != nil {
+		return false, key2
 	}
-	return false, key
+	if key2 == "" {
+		return false, key2
+	}
+	return true, key2
 }
 
 // 下载爬虫
@@ -72,6 +112,7 @@ func (s *SpiderSync) Download() {
 	fileId := s.Spider.FileId.Hex()
 	isDownloading, key := s.CheckDownLoading(spiderId, fileId)
 	if isDownloading {
+		log.Infof(fmt.Sprintf("spider is already being downloaded, spider id: %s", s.Spider.Id.Hex()))
 		return
 	} else {
 		_ = database.RedisClient.HSet("spider", key, key)
@@ -143,4 +184,64 @@ func (s *SpiderSync) Download() {
 	}
 
 	_ = database.RedisClient.HDel("spider", key)
+}
+
+// locks for dependency installation
+var installLockMap sync.Map
+
+// install dependencies
+func (s *SpiderSync) InstallDeps() {
+	langs := utils.GetLangList()
+	for _, l := range langs {
+		// no dep file name is found, skip
+		if l.DepFileName == "" {
+			continue
+		}
+
+		// being locked, i.e. installation is running, skip
+		key := s.Spider.Name + "|" + l.Name
+		_, locked := installLockMap.Load(key)
+		if locked {
+			continue
+		}
+
+		// no dep file found, skip
+		if !utils.Exists(path.Join(s.Spider.Src, l.DepFileName)) {
+			continue
+		}
+
+		// no dep install executable found, skip
+		if !utils.Exists(l.DepExecutablePath) {
+			continue
+		}
+
+		// lock
+		installLockMap.Store(key, true)
+
+		// command to install dependencies
+		cmd := exec.Command(l.DepExecutablePath, strings.Split(l.InstallDepArgs, " ")...)
+
+		// working directory
+		cmd.Dir = s.Spider.Src
+
+		// compatibility with node.js
+		if l.ExecutableName == constants.Nodejs {
+			deps, err := utils.GetPackageJsonDeps(path.Join(s.Spider.Src, l.DepFileName))
+			if err != nil {
+				continue
+			}
+			cmd = exec.Command(l.DepExecutablePath, strings.Split(l.InstallDepArgs+" "+strings.Join(deps, " "), " ")...)
+		}
+
+		// start executing command
+		output, err := cmd.Output()
+		if err != nil {
+			log.Errorf("install dep error: " + err.Error())
+			log.Errorf(string(output))
+			debug.PrintStack()
+		}
+
+		// unlock
+		installLockMap.Delete(key)
+	}
 }

@@ -12,8 +12,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/apex/log"
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/gomodule/redigo/redis"
+	"github.com/spf13/viper"
 	"runtime/debug"
 	"time"
 )
@@ -22,6 +24,7 @@ type Data struct {
 	Key          string    `json:"key"`
 	Mac          string    `json:"mac"`
 	Ip           string    `json:"ip"`
+	Hostname     string    `json:"hostname"`
 	Master       bool      `json:"master"`
 	UpdateTs     time.Time `json:"update_ts"`
 	UpdateTsUnix int64     `json:"update_ts_unix"`
@@ -102,7 +105,20 @@ func UpdateNodeStatus() {
 	model.ResetNodeStatusToOffline(list)
 }
 
-// 处理接到信息
+func getNodeName(data *Data) string {
+	registerType := viper.GetString("server.register.type")
+	if registerType == constants.RegisterTypeMac {
+		return data.Ip
+	} else if registerType == constants.RegisterTypeIp {
+		return data.Ip
+	} else if registerType == constants.RegisterTypeHostname {
+		return data.Hostname
+	} else {
+		return data.Ip
+	}
+}
+
+// 处理节点信息
 func handleNodeInfo(key string, data *Data) {
 	// 添加同步锁
 	v, err := database.RedisClient.Lock(key)
@@ -116,11 +132,11 @@ func handleNodeInfo(key string, data *Data) {
 	defer s.Close()
 
 	var node model.Node
-	if err := c.Find(bson.M{"key": key}).One(&node); err != nil {
+	if err := c.Find(bson.M{"key": key}).One(&node); err != nil && err == mgo.ErrNotFound {
 		// 数据库不存在该节点
 		node = model.Node{
 			Key:          key,
-			Name:         data.Ip,
+			Name:         getNodeName(data),
 			Ip:           data.Ip,
 			Port:         "8000",
 			Mac:          data.Mac,
@@ -133,7 +149,7 @@ func handleNodeInfo(key string, data *Data) {
 			log.Errorf(err.Error())
 			return
 		}
-	} else {
+	} else if node.Key != "" {
 		// 数据库存在该节点
 		node.Status = constants.StatusOnline
 		node.UpdateTs = time.Now()
@@ -160,6 +176,14 @@ func UpdateNodeData() {
 		log.Errorf(err.Error())
 		return
 	}
+
+	// 获取Hostname
+	hostname, err := register.GetRegister().GetHostname()
+	if err != nil {
+		log.Errorf(err.Error())
+		return
+	}
+
 	// 获取redis的key
 	key, err := register.GetRegister().GetKey()
 	if err != nil {
@@ -168,33 +192,29 @@ func UpdateNodeData() {
 		return
 	}
 
-	//先获取所有Redis的nodekey
-	list, _ := database.RedisClient.HKeys("nodes")
-
-	if i := utils.Contains(list, key); i == false {
-		// 构造节点数据
-		data := Data{
-			Key:          key,
-			Mac:          mac,
-			Ip:           ip,
-			Master:       model.IsMaster(),
-			UpdateTs:     time.Now(),
-			UpdateTsUnix: time.Now().Unix(),
-		}
-
-		// 注册节点到Redis
-		dataBytes, err := json.Marshal(&data)
-		if err != nil {
-			log.Errorf(err.Error())
-			debug.PrintStack()
-			return
-		}
-		if err := database.RedisClient.HSet("nodes", key, utils.BytesToString(dataBytes)); err != nil {
-			log.Errorf(err.Error())
-			return
-		}
+	// 构造节点数据
+	data := Data{
+		Key:          key,
+		Mac:          mac,
+		Ip:           ip,
+		Hostname:     hostname,
+		Master:       model.IsMaster(),
+		UpdateTs:     time.Now(),
+		UpdateTsUnix: time.Now().Unix(),
 	}
 
+	// 注册节点到Redis
+	dataBytes, err := json.Marshal(&data)
+	if err != nil {
+		log.Errorf(err.Error())
+		debug.PrintStack()
+		return
+	}
+
+	if err := database.RedisClient.HSet("nodes", key, utils.BytesToString(dataBytes)); err != nil {
+		log.Errorf(err.Error())
+		return
+	}
 }
 
 func MasterNodeCallback(message redis.Message) (err error) {

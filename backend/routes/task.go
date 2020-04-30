@@ -13,11 +13,12 @@ import (
 )
 
 type TaskListRequestData struct {
-	PageNum  int    `form:"page_num"`
-	PageSize int    `form:"page_size"`
-	NodeId   string `form:"node_id"`
-	SpiderId string `form:"spider_id"`
-	Status   string `form:"status"`
+	PageNum    int    `form:"page_num"`
+	PageSize   int    `form:"page_size"`
+	NodeId     string `form:"node_id"`
+	SpiderId   string `form:"spider_id"`
+	ScheduleId string `form:"schedule_id"`
+	Status     string `form:"status"`
 }
 
 type TaskResultsRequestData struct {
@@ -47,10 +48,16 @@ func GetTaskList(c *gin.Context) {
 	if data.SpiderId != "" {
 		query["spider_id"] = bson.ObjectIdHex(data.SpiderId)
 	}
-	//新增根据任务状态获取task列表
+	// 根据任务状态获取task列表
 	if data.Status != "" {
 		query["status"] = data.Status
 	}
+	if data.ScheduleId != "" {
+		query["schedule_id"] = bson.ObjectIdHex(data.ScheduleId)
+	}
+
+	// 获取校验
+	query = services.GetAuthQuery(query, c)
 
 	// 获取任务列表
 	tasks, err := model.GetTaskList(query, (data.PageNum-1)*data.PageSize, data.PageSize, "-create_ts")
@@ -100,6 +107,9 @@ func PutTask(c *gin.Context) {
 		return
 	}
 
+	// 任务ID
+	var taskIds []string
+
 	if reqBody.RunType == constants.RunTypeAllNodes {
 		// 所有节点
 		nodes, err := model.GetNodeList(nil)
@@ -109,45 +119,62 @@ func PutTask(c *gin.Context) {
 		}
 		for _, node := range nodes {
 			t := model.Task{
-				SpiderId: reqBody.SpiderId,
-				NodeId:   node.Id,
-				Param:    reqBody.Param,
+				SpiderId:   reqBody.SpiderId,
+				NodeId:     node.Id,
+				Param:      reqBody.Param,
+				UserId:     services.GetCurrentUserId(c),
+				RunType:    constants.RunTypeAllNodes,
+				ScheduleId: bson.ObjectIdHex(constants.ObjectIdNull),
 			}
 
-			if err := services.AddTask(t); err != nil {
+			id, err := services.AddTask(t)
+			if err != nil {
 				HandleError(http.StatusInternalServerError, c, err)
 				return
 			}
+
+			taskIds = append(taskIds, id)
 		}
 	} else if reqBody.RunType == constants.RunTypeRandom {
 		// 随机
 		t := model.Task{
-			SpiderId: reqBody.SpiderId,
-			Param:    reqBody.Param,
+			SpiderId:   reqBody.SpiderId,
+			Param:      reqBody.Param,
+			UserId:     services.GetCurrentUserId(c),
+			RunType:    constants.RunTypeRandom,
+			ScheduleId: bson.ObjectIdHex(constants.ObjectIdNull),
 		}
-		if err := services.AddTask(t); err != nil {
+		id, err := services.AddTask(t)
+		if err != nil {
 			HandleError(http.StatusInternalServerError, c, err)
 			return
 		}
+		taskIds = append(taskIds, id)
 	} else if reqBody.RunType == constants.RunTypeSelectedNodes {
 		// 指定节点
 		for _, nodeId := range reqBody.NodeIds {
 			t := model.Task{
-				SpiderId: reqBody.SpiderId,
-				NodeId:   nodeId,
-				Param:    reqBody.Param,
+				SpiderId:   reqBody.SpiderId,
+				NodeId:     nodeId,
+				Param:      reqBody.Param,
+				UserId:     services.GetCurrentUserId(c),
+				RunType:    constants.RunTypeSelectedNodes,
+				ScheduleId: bson.ObjectIdHex(constants.ObjectIdNull),
 			}
 
-			if err := services.AddTask(t); err != nil {
+			id, err := services.AddTask(t)
+			if err != nil {
 				HandleError(http.StatusInternalServerError, c, err)
 				return
 			}
+			taskIds = append(taskIds, id)
 		}
 	} else {
 		HandleErrorF(http.StatusInternalServerError, c, "invalid run_type")
 		return
 	}
-	HandleSuccess(c)
+
+	HandleSuccessData(c, taskIds)
 }
 
 func DeleteTaskByStatus(c *gin.Context) {
@@ -169,7 +196,7 @@ func DeleteTaskByStatus(c *gin.Context) {
 }
 
 // 删除多个任务
-func DeleteMultipleTask(c *gin.Context) {
+func DeleteSelectedTask(c *gin.Context) {
 	ids := make(map[string][]string)
 	if err := c.ShouldBindJSON(&ids); err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
@@ -207,13 +234,43 @@ func DeleteTask(c *gin.Context) {
 }
 
 func GetTaskLog(c *gin.Context) {
+	type RequestData struct {
+		PageNum  int    `form:"page_num"`
+		PageSize int    `form:"page_size"`
+		Keyword  string `form:"keyword"`
+	}
 	id := c.Param("id")
-	logStr, err := services.GetTaskLog(id)
+	var reqData RequestData
+	if err := c.ShouldBindQuery(&reqData); err != nil {
+		HandleErrorF(http.StatusBadRequest, c, "invalid request")
+		return
+	}
+	logItems, logTotal, err := services.GetTaskLog(id, reqData.Keyword, reqData.PageNum, reqData.PageSize)
 	if err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
 		return
 	}
-	HandleSuccessData(c, logStr)
+	c.JSON(http.StatusOK, ListResponse{
+		Status:  "ok",
+		Message: "success",
+		Data:    logItems,
+		Total:   logTotal,
+	})
+}
+
+func GetTaskErrorLog(c *gin.Context) {
+	id := c.Param("id")
+	u := services.GetCurrentUser(c)
+	errLogItems, err := services.GetTaskErrorLog(id, u.Setting.MaxErrorLog)
+	if err != nil {
+		HandleError(http.StatusInternalServerError, c, err)
+		return
+	}
+	c.JSON(http.StatusOK, Response{
+		Status:  "ok",
+		Message: "success",
+		Data:    errLogItems,
+	})
 }
 
 func GetTaskResults(c *gin.Context) {
@@ -321,6 +378,18 @@ func CancelTask(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := services.CancelTask(id); err != nil {
+		HandleError(http.StatusInternalServerError, c, err)
+		return
+	}
+	HandleSuccess(c)
+}
+
+func RestartTask(c *gin.Context) {
+	id := c.Param("id")
+
+	uid := services.GetCurrentUserId(c)
+
+	if err := services.RestartTask(id, uid); err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
 		return
 	}

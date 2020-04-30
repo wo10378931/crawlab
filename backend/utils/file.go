@@ -33,7 +33,14 @@ func ReadFileOneLine(fileName string) string {
 		return ""
 	}
 	return line
+}
 
+func GetSpiderMd5Str(file string) string {
+	md5Str := ReadFileOneLine(file)
+	// 去掉空格以及换行符
+	md5Str = strings.Replace(md5Str, " ", "", -1)
+	md5Str = strings.Replace(md5Str, "\n", "", -1)
+	return md5Str
 }
 
 // 创建文件
@@ -48,7 +55,7 @@ func OpenFile(fileName string) *os.File {
 }
 
 // 创建文件夹
-func CreateFilePath(filePath string) {
+func CreateDirPath(filePath string) {
 	if !Exists(filePath) {
 		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
 			log.Errorf("create file error: %s, file_path: %s", err.Error(), filePath)
@@ -142,10 +149,9 @@ func DeCompress(srcFile *os.File, dstPath string) error {
 		}
 
 		// 如果文件目录不存在，则创建一个
-		dirPath := filepath.Dir(innerFile.Name)
+		dirPath := filepath.Join(dstPath, filepath.Dir(innerFile.Name))
 		if !Exists(dirPath) {
-			err = os.MkdirAll(filepath.Join(dstPath, dirPath), os.ModeDir|os.ModePerm)
-			if err != nil {
+			if err = os.MkdirAll(dirPath, os.ModeDir|os.ModePerm); err != nil {
 				log.Errorf("Unzip File Error : " + err.Error())
 				debug.PrintStack()
 				return err
@@ -161,7 +167,8 @@ func DeCompress(srcFile *os.File, dstPath string) error {
 		}
 
 		// 创建新文件
-		newFile, err := os.OpenFile(filepath.Join(dstPath, innerFile.Name), os.O_RDWR|os.O_CREATE|os.O_TRUNC, info.Mode())
+		newFilePath := filepath.Join(dstPath, innerFile.Name)
+		newFile, err := os.OpenFile(newFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, info.Mode())
 		if err != nil {
 			log.Errorf("Unzip File Error : " + err.Error())
 			debug.PrintStack()
