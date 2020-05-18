@@ -4,7 +4,7 @@ import (
 	"context"
 	"crawlab/config"
 	"crawlab/database"
-	"crawlab/lib/validate_bridge"
+	_ "crawlab/docs"
 	"crawlab/middlewares"
 	"crawlab/model"
 	"crawlab/routes"
@@ -13,9 +13,10 @@ import (
 	"crawlab/services/rpc"
 	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 	"github.com/olivere/elastic/v7"
 	"github.com/spf13/viper"
+	"github.com/swaggo/gin-swagger"
+	"github.com/swaggo/gin-swagger/swaggerFiles"
 	"net"
 	"net/http"
 	"os"
@@ -25,9 +26,17 @@ import (
 	"time"
 )
 
+var swagHandler gin.HandlerFunc
+
+func init() {
+	swagHandler = ginSwagger.WrapHandler(swaggerFiles.Handler)
+}
 func main() {
-	binding.Validator = new(validate_bridge.DefaultValidator)
-	app := gin.Default()
+	app := gin.New()
+	app.Use(gin.Logger(), gin.Recovery())
+	if swagHandler != nil {
+		app.GET("/swagger/*any", swagHandler)
+	}
 
 	// 初始化配置
 	if err := config.InitConfig(""); err != nil {

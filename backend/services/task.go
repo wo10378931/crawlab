@@ -166,7 +166,7 @@ func SetEnv(cmd *exec.Cmd, envs []model.Env, task model.Task, spider model.Spide
 	return cmd
 }
 
-func SetLogConfig(wg *sync.WaitGroup, cmd  *exec.Cmd, t model.Task, u model.User) error {
+func SetLogConfig(wg *sync.WaitGroup, cmd *exec.Cmd, t model.Task, u model.User) error {
 
 	esChan := make(chan string, 1)
 	esClientStr := viper.GetString("setting.esClient")
@@ -194,7 +194,7 @@ func SetLogConfig(wg *sync.WaitGroup, cmd  *exec.Cmd, t model.Task, u model.User
 	isStdoutFinished := false
 	isStderrFinished := false
 
-	// periodically (1 sec) insert log items
+	// periodically (5 sec) insert log items
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
@@ -234,8 +234,9 @@ func SetLogConfig(wg *sync.WaitGroup, cmd  *exec.Cmd, t model.Task, u model.User
 				Ts:       time.Now(),
 				ExpireTs: time.Now().Add(time.Duration(expireDuration) * time.Second),
 			}
-			esChan <- l.Message
+
 			if esClientStr != "" {
+				esChan <- l.Message
 				go database.WriteMsgToES(time.Now(), esChan, spiderLogIndex)
 			}
 
@@ -262,8 +263,9 @@ func SetLogConfig(wg *sync.WaitGroup, cmd  *exec.Cmd, t model.Task, u model.User
 				Ts:       time.Now(),
 				ExpireTs: time.Now().Add(time.Duration(expireDuration) * time.Second),
 			}
-			esChan <- l.Message
+
 			if esClientStr != "" {
+				esChan <- l.Message
 				go database.WriteMsgToES(time.Now(), esChan, spiderLogIndex)
 			}
 			logs = append(logs, l)
