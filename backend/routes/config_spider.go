@@ -129,7 +129,10 @@ func PostConfigSpider(c *gin.Context) {
 // @Router /config_spiders/{id}/upload [post]
 func UploadConfigSpider(c *gin.Context) {
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	// 获取爬虫
 	var spider model.Spider
 	spider, err := model.GetSpider(bson.ObjectIdHex(id))
@@ -167,11 +170,13 @@ func UploadConfigSpider(c *gin.Context) {
 		f, err = os.OpenFile(sfPath, os.O_WRONLY, 0777)
 		if err != nil {
 			HandleError(http.StatusInternalServerError, c, err)
+			return
 		}
 	} else {
 		f, err = os.Create(sfPath)
 		if err != nil {
 			HandleError(http.StatusInternalServerError, c, err)
+			return
 		}
 	}
 
@@ -229,7 +234,10 @@ func PostConfigSpiderSpiderfile(c *gin.Context) {
 	}
 
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	// 文件内容
 	var reqBody Body
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
@@ -295,7 +303,10 @@ func PostConfigSpiderSpiderfile(c *gin.Context) {
 // @Router /config_spiders/{id}/config [post]
 func PostConfigSpiderConfig(c *gin.Context) {
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	// 获取爬虫
 	var spider model.Spider
 	spider, err := model.GetSpider(bson.ObjectIdHex(id))
@@ -356,6 +367,7 @@ func GetConfigSpiderConfig(c *gin.Context) {
 	// 校验ID
 	if !bson.IsObjectIdHex(id) {
 		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
 	}
 
 	// 获取爬虫

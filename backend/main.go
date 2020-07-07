@@ -5,6 +5,7 @@ import (
 	"crawlab/config"
 	"crawlab/database"
 	_ "crawlab/docs"
+	validate2 "crawlab/lib/validate"
 	"crawlab/middlewares"
 	"crawlab/model"
 	"crawlab/routes"
@@ -13,6 +14,8 @@ import (
 	"crawlab/services/rpc"
 	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	"github.com/olivere/elastic/v7"
 	"github.com/spf13/viper"
 	"github.com/swaggo/gin-swagger"
@@ -34,6 +37,10 @@ func init() {
 func main() {
 	app := gin.New()
 	app.Use(gin.Logger(), gin.Recovery())
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		_ = v.RegisterValidation("bid", validate2.MongoID)
+	}
+
 	if swagHandler != nil {
 		app.GET("/swagger/*any", swagHandler)
 	}
@@ -65,9 +72,17 @@ func main() {
 		log.Error("init log error:" + err.Error())
 		panic(err)
 	}
-	log.Info("initialized log successfully")
+	log.Info("initialized log successfully") // 初始化日志设置
+
+	// 初始化节点服务
+	if err := services.InitNodeService(); err != nil {
+		log.Error("init node service error:" + err.Error())
+		panic(err)
+	}
+	log.Info("initialized local node successfully")
 
 	if model.IsMaster() {
+
 		// 初始化定时任务
 		if err := services.InitScheduler(); err != nil {
 			log.Error("init scheduler error:" + err.Error())
@@ -116,13 +131,6 @@ func main() {
 		panic(err)
 	}
 	log.Info("initialized task executor successfully")
-
-	// 初始化节点服务
-	if err := services.InitNodeService(); err != nil {
-		log.Error("init node service error:" + err.Error())
-		panic(err)
-	}
-	log.Info("initialized node service successfully")
 
 	// 初始化爬虫服务
 	if err := services.InitSpiderService(); err != nil {

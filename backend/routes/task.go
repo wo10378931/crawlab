@@ -101,7 +101,6 @@ func GetTaskList(c *gin.Context) {
 // @Router /tasks/{id} [get]
 func GetTask(c *gin.Context) {
 	id := c.Param("id")
-
 	result, err := model.GetTask(id)
 	if err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
@@ -273,7 +272,6 @@ func DeleteSelectedTask(c *gin.Context) {
 // @Router /task/{id} [delete]
 func DeleteTask(c *gin.Context) {
 	id := c.Param("id")
-
 	// 删除日志文件
 	if err := services.RemoveLogByTaskId(id); err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
@@ -357,7 +355,6 @@ func GetTaskErrorLog(c *gin.Context) {
 // @Router /tasks/{id}/results [get]
 func GetTaskResults(c *gin.Context) {
 	id := c.Param("id")
-
 	// 绑定数据
 	data := TaskResultsRequestData{}
 	if err := c.ShouldBindQuery(&data); err != nil {
@@ -387,7 +384,6 @@ func GetTaskResults(c *gin.Context) {
 	})
 }
 
-
 // @Summary Get task results
 // @Description Get task results
 // @Tags task
@@ -399,7 +395,6 @@ func GetTaskResults(c *gin.Context) {
 // @Router /tasks/{id}/results/download [get]
 func DownloadTaskResultsCsv(c *gin.Context) {
 	id := c.Param("id")
-
 	// 获取任务
 	task, err := model.GetTask(id)
 	if err != nil {
@@ -466,7 +461,6 @@ func DownloadTaskResultsCsv(c *gin.Context) {
 	c.Data(http.StatusOK, "text/csv", bytesBuffer.Bytes())
 }
 
-
 // @Summary Cancel task
 // @Description Cancel task
 // @Tags task
@@ -478,7 +472,6 @@ func DownloadTaskResultsCsv(c *gin.Context) {
 // @Router /tasks/{id}/cancel [post]
 func CancelTask(c *gin.Context) {
 	id := c.Param("id")
-
 	if err := services.CancelTask(id); err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
 		return
@@ -497,7 +490,6 @@ func CancelTask(c *gin.Context) {
 // @Router /tasks/{id}/restart [post]
 func RestartTask(c *gin.Context) {
 	id := c.Param("id")
-
 	uid := services.GetCurrentUserId(c)
 
 	if err := services.RestartTask(id, uid); err != nil {

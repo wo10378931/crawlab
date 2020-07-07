@@ -106,6 +106,7 @@ func GetSpiderList(c *gin.Context) {
 			sortStr = "+" + sortKey
 		} else {
 			HandleErrorF(http.StatusBadRequest, c, "invalid sort_direction")
+			return
 		}
 	}
 
@@ -139,6 +140,7 @@ func GetSpider(c *gin.Context) {
 
 	if !bson.IsObjectIdHex(id) {
 		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
 	}
 
 	spider, err := model.GetSpider(bson.ObjectIdHex(id))
@@ -170,6 +172,7 @@ func PostSpider(c *gin.Context) {
 
 	if !bson.IsObjectIdHex(id) {
 		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
 	}
 
 	var item model.Spider
@@ -228,6 +231,7 @@ func PublishSpider(c *gin.Context) {
 
 	if !bson.IsObjectIdHex(id) {
 		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
 	}
 
 	spider, err := model.GetSpider(bson.ObjectIdHex(id))
@@ -354,6 +358,7 @@ func CopySpider(c *gin.Context) {
 
 	if !bson.IsObjectIdHex(id) {
 		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
 	}
 
 	var reqBody ReqBody
@@ -465,7 +470,7 @@ func UploadSpider(c *gin.Context) {
 	}
 
 	// 上传到GridFs
-	fid, err := services.UploadToGridFs(uploadFile.Filename, tmpFilePath)
+	fid, err := services.RetryUploadToGridFs(uploadFile.Filename, tmpFilePath)
 	if err != nil {
 		log.Errorf("upload to grid fs error: %s", err.Error())
 		debug.PrintStack()
@@ -562,7 +567,10 @@ func UploadSpiderFromId(c *gin.Context) {
 	// TODO: 与 UploadSpider 部分逻辑重复，需要优化代码
 	// 爬虫ID
 	spiderId := c.Param("id")
-
+	if !bson.IsObjectIdHex(spiderId) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	// 获取爬虫
 	spider, err := model.GetSpider(bson.ObjectIdHex(spiderId))
 	if err != nil {
@@ -626,7 +634,7 @@ func UploadSpiderFromId(c *gin.Context) {
 	}
 
 	// 上传到GridFs
-	fid, err := services.UploadToGridFs(spider.Name, tmpFilePath)
+	fid, err := services.RetryUploadToGridFs(spider.Name, tmpFilePath)
 	if err != nil {
 		log.Errorf("upload to grid fs error: %s", err.Error())
 		debug.PrintStack()
@@ -872,7 +880,10 @@ func RunSelectedSpider(c *gin.Context) {
 // @Router /spiders/{id}/tasks [get]
 func GetSpiderTasks(c *gin.Context) {
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	spider, err := model.GetSpider(bson.ObjectIdHex(id))
 	if err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
@@ -919,7 +930,10 @@ func GetSpiderStats(c *gin.Context) {
 	}
 
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	spider, err := model.GetSpider(bson.ObjectIdHex(id))
 	if err != nil {
 		log.Errorf(err.Error())
@@ -1069,7 +1083,10 @@ func GetSpiderSchedules(c *gin.Context) {
 func GetSpiderDir(c *gin.Context) {
 	// 爬虫ID
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	// 目录相对路径
 	path := c.Query("path")
 
@@ -1126,7 +1143,10 @@ type SpiderFileReqBody struct {
 func GetSpiderFile(c *gin.Context) {
 	// 爬虫ID
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	// 文件相对路径
 	path := c.Query("path")
 
@@ -1163,7 +1183,10 @@ func GetSpiderFile(c *gin.Context) {
 func GetSpiderFileTree(c *gin.Context) {
 	// 爬虫ID
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	// 获取爬虫
 	spider, err := model.GetSpider(bson.ObjectIdHex(id))
 	if err != nil {
@@ -1203,7 +1226,10 @@ func GetSpiderFileTree(c *gin.Context) {
 func PostSpiderFile(c *gin.Context) {
 	// 爬虫ID
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	// 文件相对路径
 	var reqBody SpiderFileReqBody
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
@@ -1249,6 +1275,10 @@ func PostSpiderFile(c *gin.Context) {
 // @Router /spiders/{id}/file [post]
 func PutSpiderFile(c *gin.Context) {
 	spiderId := c.Param("id")
+	if !bson.IsObjectIdHex(spiderId) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	var reqBody SpiderFileReqBody
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
 		HandleError(http.StatusBadRequest, c, err)
@@ -1299,6 +1329,10 @@ func PutSpiderFile(c *gin.Context) {
 // @Router /spiders/{id}/file [put]
 func PutSpiderDir(c *gin.Context) {
 	spiderId := c.Param("id")
+	if !bson.IsObjectIdHex(spiderId) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	var reqBody SpiderFileReqBody
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
 		HandleError(http.StatusBadRequest, c, err)
@@ -1349,6 +1383,10 @@ func PutSpiderDir(c *gin.Context) {
 // @Router /spiders/{id}/file [delete]
 func DeleteSpiderFile(c *gin.Context) {
 	spiderId := c.Param("id")
+	if !bson.IsObjectIdHex(spiderId) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	var reqBody SpiderFileReqBody
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
 		HandleError(http.StatusBadRequest, c, err)
@@ -1389,6 +1427,11 @@ func DeleteSpiderFile(c *gin.Context) {
 // @Router /spiders/{id}/file/rename [post]
 func RenameSpiderFile(c *gin.Context) {
 	spiderId := c.Param("id")
+
+	if !bson.IsObjectIdHex(spiderId) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	var reqBody SpiderFileReqBody
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
 		HandleError(http.StatusBadRequest, c, err)
@@ -1489,7 +1532,10 @@ func PutSpiderScrapySpiders(c *gin.Context) {
 	}
 
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	var reqBody ReqBody
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
 		HandleErrorF(http.StatusBadRequest, c, "invalid request")
@@ -1672,7 +1718,6 @@ func PostSpiderScrapyItems(c *gin.Context) {
 	})
 }
 
-
 // @Summary Get scrapy spider pipelines
 // @Description Get scrapy spider pipelines
 // @Tags spider
@@ -1720,7 +1765,10 @@ func GetSpiderScrapyPipelines(c *gin.Context) {
 // @Router /spiders/{id}/scrapy/spider/filepath [get]
 func GetSpiderScrapySpiderFilepath(c *gin.Context) {
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	spiderName := c.Query("spider_name")
 	if spiderName == "" {
 		HandleErrorF(http.StatusBadRequest, c, "spider_name is empty")
