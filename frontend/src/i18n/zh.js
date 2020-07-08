@@ -538,7 +538,12 @@ export default {
     // Cron Format: [second] [minute] [hour] [day of month] [month] [day of week]
     cron_format: 'Cron 格式: [秒] [分] [小时] [日] [月] [周]'
   },
-
+  auth: {
+    login_expired_message: '您已注销，可以取消以保留在该页面上，或者再次登录',
+    login_expired_title: '确认登出',
+    login_expired_confirm: '确认',
+    login_expired_cancel: '取消'
+  },
   // 内容
   addNodeInstruction: `
 您不能在 Crawlab 的 Web 界面直接添加节点。

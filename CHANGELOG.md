@@ -1,3 +1,18 @@
+# 0.5.0 (TBC)
+### Features / Enhancement
+- **Migrate MongoDB driver to `MongoDriver`**.
+- **Refactor and optmize node-related logics**.
+- **Change default `task.workers` to 16**.
+- **Change default nginx `client_max_body_size` to 200m**.
+
+### Bug Fixes
+- **Fixed log not expiring issue because of failure to create TTL index**.
+- **Set default log expire duration to 1 day**.
+- **`task_id` index not created**.
+- **`docker-compose.yml` fix**.
+- **Fixed 404 page**.
+- **Fixed unable to create worker node before master node issue**.
+
 # 0.4.10 (2020-04-21)
 ### Features / Enhancement
 - **Enhanced Log Management**. Centralizing log storage in MongoDB, reduced the dependency of PubSub, allowing log error detection.

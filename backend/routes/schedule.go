@@ -8,6 +8,14 @@ import (
 	"net/http"
 )
 
+// @Summary Get schedule list
+// @Description Get schedule list
+// @Tags schedule
+// @Produce json
+// @Param Authorization header string true "Authorization token"
+// @Success 200 json string Response
+// @Failure 400 json string Response
+// @Router /schedules [get]
 func GetScheduleList(c *gin.Context) {
 	query := bson.M{}
 
@@ -22,9 +30,21 @@ func GetScheduleList(c *gin.Context) {
 	HandleSuccessData(c, results)
 }
 
+// @Summary Get schedule by id
+// @Description Get schedule  by id
+// @Tags schedule
+// @Produce json
+// @Param Authorization header string true "Authorization token"
+// @Param id path string true "schedule id"
+// @Success 200 json string Response
+// @Failure 400 json string Response
+// @Router /schedules/{id} [get]
 func GetSchedule(c *gin.Context) {
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	result, err := model.GetSchedule(bson.ObjectIdHex(id))
 	if err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
@@ -34,9 +54,23 @@ func GetSchedule(c *gin.Context) {
 	HandleSuccessData(c, result)
 }
 
+// @Summary Post schedule
+// @Description Post schedule
+// @Tags schedule
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization token"
+// @Param id path string true "schedule id"
+// @Param newItem body  model.Schedule true "schedule item"
+// @Success 200 json string Response
+// @Failure 500 json string Response
+// @Router /schedules/{id} [post]
 func PostSchedule(c *gin.Context) {
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	// 绑定数据模型
 	var newItem model.Schedule
 	if err := c.ShouldBindJSON(&newItem); err != nil {
@@ -66,6 +100,16 @@ func PostSchedule(c *gin.Context) {
 	HandleSuccess(c)
 }
 
+// @Summary Put schedule
+// @Description Put schedule
+// @Tags schedule
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization token"
+// @Param item body  model.Schedule true "schedule item"
+// @Success 200 json string Response
+// @Failure 500 json string Response
+// @Router /schedules [put]
 func PutSchedule(c *gin.Context) {
 	var item model.Schedule
 
@@ -99,9 +143,21 @@ func PutSchedule(c *gin.Context) {
 	HandleSuccess(c)
 }
 
+// @Summary Delete schedule
+// @Description Delete schedule
+// @Tags schedule
+// @Produce json
+// @Param Authorization header string true "Authorization token"
+// @Param id path string true "schedule id"
+// @Success 200 json string Response
+// @Failure 400 json string Response
+// @Router /schedules/{id} [delete]
 func DeleteSchedule(c *gin.Context) {
 	id := c.Param("id")
-
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	// 删除定时任务
 	if err := model.RemoveSchedule(bson.ObjectIdHex(id)); err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
@@ -118,8 +174,22 @@ func DeleteSchedule(c *gin.Context) {
 }
 
 // 停止定时任务
+// @Summary disable schedule
+// @Description disable schedule
+// @Tags schedule
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization token"
+// @Param id path string true "schedule id"
+// @Success 200 json string Response
+// @Failure 500 json string Response
+// @Router /schedules/{id}/disable [post]
 func DisableSchedule(c *gin.Context) {
 	id := c.Param("id")
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	if err := services.Sched.Disable(bson.ObjectIdHex(id)); err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
 		return
@@ -128,8 +198,22 @@ func DisableSchedule(c *gin.Context) {
 }
 
 // 运行定时任务
+// @Summary enable schedule
+// @Description enable schedule
+// @Tags schedule
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization token"
+// @Param id path string true "schedule id"
+// @Success 200 json string Response
+// @Failure 500 json string Response
+// @Router /schedules/{id}/enable [post]
 func EnableSchedule(c *gin.Context) {
 	id := c.Param("id")
+	if !bson.IsObjectIdHex(id) {
+		HandleErrorF(http.StatusBadRequest, c, "invalid id")
+		return
+	}
 	if err := services.Sched.Enable(bson.ObjectIdHex(id)); err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
 		return
