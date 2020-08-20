@@ -3,9 +3,11 @@ package routes
 import (
 	"crawlab/model"
 	"crawlab/services"
+	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
 	"net/http"
+	"runtime/debug"
 )
 
 // @Summary Get schedule list
@@ -218,5 +220,104 @@ func EnableSchedule(c *gin.Context) {
 		HandleError(http.StatusInternalServerError, c, err)
 		return
 	}
+	HandleSuccess(c)
+}
+
+func PutBatchSchedules(c *gin.Context) {
+	var schedules []model.Schedule
+	if err := c.ShouldBindJSON(&schedules); err != nil {
+		HandleError(http.StatusBadRequest, c, err)
+		return
+	}
+
+	for _, s := range schedules {
+		// 验证cron表达式
+		if err := services.ParserCron(s.Cron); err != nil {
+			log.Errorf("parse cron error: " + err.Error())
+			debug.PrintStack()
+			HandleError(http.StatusInternalServerError, c, err)
+			return
+		}
+
+		// 添加 UserID
+		s.UserId = services.GetCurrentUserId(c)
+
+		// 默认启用
+		s.Enabled = true
+
+		// 添加定时任务
+		if err := model.AddSchedule(s); err != nil {
+			log.Errorf("add schedule error: " + err.Error())
+			debug.PrintStack()
+			HandleError(http.StatusInternalServerError, c, err)
+			return
+		}
+	}
+
+	// 更新定时任务
+	if err := services.Sched.Update(); err != nil {
+		HandleError(http.StatusInternalServerError, c, err)
+		return
+	}
+
+	HandleSuccess(c)
+}
+
+func DeleteBatchSchedules(c *gin.Context) {
+	ids := make(map[string][]string)
+	if err := c.ShouldBindJSON(&ids); err != nil {
+		HandleError(http.StatusBadRequest, c, err)
+		return
+	}
+	list := ids["ids"]
+	for _, id := range list {
+		if err := model.RemoveSchedule(bson.ObjectIdHex(id)); err != nil {
+			HandleError(http.StatusInternalServerError, c, err)
+			return
+		}
+	}
+
+	// 更新定时任务
+	if err := services.Sched.Update(); err != nil {
+		HandleError(http.StatusInternalServerError, c, err)
+		return
+	}
+
+	HandleSuccess(c)
+}
+
+func SetEnabledSchedules(c *gin.Context) {
+	type ReqBody struct {
+		ScheduleIds []bson.ObjectId `json:"schedule_ids"`
+		Enabled     bool            `json:"enabled"`
+	}
+	var reqBody ReqBody
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		HandleError(http.StatusBadRequest, c, err)
+		return
+	}
+	for _, id := range reqBody.ScheduleIds {
+		s, err := model.GetSchedule(id)
+		if err != nil {
+			log.Errorf("get schedule error: " + err.Error())
+			debug.PrintStack()
+			HandleError(http.StatusInternalServerError, c, err)
+			return
+		}
+		s.Enabled = reqBody.Enabled
+		if err := s.Save(); err != nil {
+			log.Errorf("save schedule error: " + err.Error())
+			debug.PrintStack()
+			HandleError(http.StatusInternalServerError, c, err)
+			return
+		}
+	}
+
+	// 更新定时任务
+	if err := services.Sched.Update(); err != nil {
+		HandleError(http.StatusInternalServerError, c, err)
+		return
+	}
+
 	HandleSuccess(c)
 }

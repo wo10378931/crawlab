@@ -29,6 +29,12 @@
       </span>
       <el-dropdown-menu slot="dropdown" class="user-dropdown">
         <el-dropdown-item>
+          <span style="display:block;" @click="() => $router.push('/disclaimer')">{{ $t('Disclaimer') }}</span>
+        </el-dropdown-item>
+        <el-dropdown-item>
+          <span style="display:block;" @click="() => $router.push('/feedback')">{{ $t('Feedback') }}</span>
+        </el-dropdown-item>
+        <el-dropdown-item>
           <span style="display:block;" @click="logout">{{ $t('Logout') }}</span>
         </el-dropdown-item>
       </el-dropdown-menu>
@@ -181,7 +187,11 @@ docker-compose up -d
           const nc = Number(currentVersionList[i])
           let nl = Number(latestVersionList[i])
           if (isNaN(nl)) nl = 0
-          if (nc < nl) return true
+          if (nc < nl) {
+            return true
+          } else if (nc > nl) {
+            return false
+          }
         }
         return false
       },
@@ -275,7 +285,7 @@ docker-compose up -d
     .github {
       height: 50px;
       margin-right: 35px;
-      padding-top: 8px;
+      margin-top: -10px;
     }
 
     .upgrade {

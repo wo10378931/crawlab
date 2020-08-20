@@ -14,6 +14,24 @@
       <div class="filter">
         <div class="left">
           <el-form class="filter-form" :model="filter" label-width="100px" label-position="right" inline>
+            <el-form-item :label="$t('Type')">
+              <el-button-group>
+                <el-button
+                  size="small"
+                  :type="filter.type === 'spider' ? 'primary' : ''"
+                  @click="onClickType('spider')"
+                >
+                  {{ $t('Spider Tasks') }}
+                </el-button>
+                <el-button
+                  size="small"
+                  :type="filter.type === 'system' ? 'primary' : ''"
+                  @click="onClickType('system')"
+                >
+                  {{ $t('System Tasks') }}
+                </el-button>
+              </el-button-group>
+            </el-form-item>
             <el-form-item prop="node_id" :label="$t('Node')">
               <el-select v-model="filter.node_id" size="small" :placeholder="$t('Node')" @change="onFilterChange">
                 <el-option value="" :label="$t('All')" />
@@ -46,8 +64,35 @@
           </el-form>
         </div>
         <div class="right">
-          <el-button class="btn-delete" size="small" type="danger" @click="onRemoveMultipleTask">
-            删除任务
+          <el-button
+            v-if="selectedRunningTasks.length > 0"
+            icon="el-icon-video-pause"
+            class="btn-stop"
+            size="small"
+            type="info"
+            @click="onStopMultipleTask"
+          >
+            {{ $t('Cancel') }}
+          </el-button>
+          <el-button
+            v-if="selectedTasks.length > 0"
+            icon="el-icon-refresh"
+            class="btn-restart"
+            size="small"
+            type="warning"
+            @click="onRestartMultipleTask"
+          >
+            {{ $t('Restart') }}
+          </el-button>
+          <el-button
+            v-if="selectedTasks.length > 0"
+            icon="el-icon-delete"
+            class="btn-delete"
+            size="small"
+            type="danger"
+            @click="onRemoveMultipleTask"
+          >
+            {{ $t('Remove') }}
           </el-button>
         </div>
       </div>
@@ -176,7 +221,7 @@
             :width="col.width"
           />
         </template>
-        <el-table-column :label="$t('Action')" align="left" fixed="right" width="150px">
+        <el-table-column :label="$t('Action')" align="left" fixed="right" width="200px">
           <template slot-scope="scope">
             <el-tooltip :content="$t('View')" placement="top">
               <el-button type="primary" icon="el-icon-search" size="mini" @click="onView(scope.row)" />
@@ -195,6 +240,14 @@
                 icon="el-icon-delete"
                 size="mini"
                 @click="onRemove(scope.row, $event)"
+              />
+            </el-tooltip>
+            <el-tooltip v-if="['pending', 'running'].includes(scope.row.status)" :content="$t('Stop')" placement="top">
+              <el-button
+                type="info"
+                icon="el-icon-video-pause"
+                size="mini"
+                @click="onStop(scope.row, $event)"
               />
             </el-tooltip>
           </template>
@@ -255,7 +308,7 @@
         // { name: 'avg_num_results', label: 'Average Results Count per Second', width: '80' }
         ],
 
-        multipleSelection: [],
+        selectedTasks: [],
 
         // tutorial
         tourSteps: [
@@ -346,6 +399,9 @@
             }
             return false
           })
+      },
+      selectedRunningTasks() {
+        return this.selectedTasks.filter(d => ['pending', 'running'].includes(d.status))
       }
     },
     created() {
@@ -372,25 +428,18 @@
         this.$store.dispatch('task/getTaskList')
         this.$st.sendEv('任务列表', '搜索')
       },
-      onRemoveMultipleTask() {
-        if (this.multipleSelection.length === 0) {
-          this.$message({
-            type: 'error',
-            message: '请选择要删除的任务'
-          })
-          return
-        }
-        this.$confirm('确定删除任务', '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
+      onRestartMultipleTask() {
+        this.$confirm(this.$t('Are you sure to restart these tasks'), this.$t('Notification'), {
+          confirmButtonText: this.$t('Confirm'),
+          cancelButtonText: this.$t('Cancel'),
           type: 'warning'
         }).then(() => {
-          const ids = this.multipleSelection.map(item => item._id)
-          this.$store.dispatch('task/deleteTaskMultiple', ids).then((resp) => {
+          const ids = this.selectedTasks.map(item => item._id)
+          this.$store.dispatch('task/restartTaskMultiple', ids).then((resp) => {
             if (resp.data.status === 'ok') {
               this.$message({
                 type: 'success',
-                message: '删除任务成功'
+                message: this.$t('Restarted successfully')
               })
               this.$store.dispatch('task/getTaskList')
               this.$refs['table'].clearSelection()
@@ -401,6 +450,59 @@
               message: resp.data.error
             })
           })
+          this.$st.sendEv('任务列表', '批量重启任务')
+        }).catch(() => {
+        })
+      },
+      onRemoveMultipleTask() {
+        this.$confirm(this.$t('Are you sure to delete these tasks'), this.$t('Notification'), {
+          confirmButtonText: this.$t('Confirm'),
+          cancelButtonText: this.$t('Cancel'),
+          type: 'warning'
+        }).then(() => {
+          const ids = this.selectedTasks.map(item => item._id)
+          this.$store.dispatch('task/deleteTaskMultiple', ids).then((resp) => {
+            if (resp.data.status === 'ok') {
+              this.$message({
+                type: 'success',
+                message: this.$t('Deleted successfully')
+              })
+              this.$store.dispatch('task/getTaskList')
+              this.$refs['table'].clearSelection()
+              return
+            }
+            this.$message({
+              type: 'error',
+              message: resp.data.error
+            })
+          })
+          this.$st.sendEv('任务列表', '批量删除任务')
+        }).catch(() => {
+        })
+      },
+      onStopMultipleTask() {
+        this.$confirm(this.$t('Are you sure to stop these tasks'), this.$t('Notification'), {
+          confirmButtonText: this.$t('Confirm'),
+          cancelButtonText: this.$t('Cancel'),
+          type: 'warning'
+        }).then(() => {
+          const ids = this.selectedRunningTasks.map(item => item._id)
+          this.$store.dispatch('task/cancelTaskMultiple', ids).then((resp) => {
+            if (resp.data.status === 'ok') {
+              this.$message({
+                type: 'success',
+                message: this.$t('Stopped successfully')
+              })
+              this.$store.dispatch('task/getTaskList')
+              this.$refs['table'].clearSelection()
+              return
+            }
+            this.$message({
+              type: 'error',
+              message: resp.data.error
+            })
+          })
+          this.$st.sendEv('任务列表', '批量停止任务')
         }).catch(() => {
         })
       },
@@ -436,6 +538,24 @@
               })
             })
           this.$st.sendEv('任务列表', '重新开始任务')
+        })
+      },
+      onStop(row, ev) {
+        ev.stopPropagation()
+        this.$confirm(this.$t('Are you sure to stop this task?'), this.$t('Notification'), {
+          confirmButtonText: this.$t('Confirm'),
+          cancelButtonText: this.$t('Cancel'),
+          type: 'warning'
+        }).then(() => {
+          this.$store.dispatch('task/cancelTask', row._id)
+            .then(() => {
+              this.$message({
+                type: 'success',
+                message: this.$t('Stopped successfully')
+              })
+              this.$store.dispatch('task/getTaskList')
+            })
+          this.$st.sendEv('任务列表', '停止任务')
         })
       },
       onView(row) {
@@ -477,11 +597,16 @@
         }
       },
       onSelectionChange(val) {
-        this.multipleSelection = val
+        this.selectedTasks = val
       },
       onFilterChange() {
         this.$store.dispatch('task/getTaskList')
         this.$st.sendEv('任务列表', '筛选任务')
+      },
+      onClickType(type) {
+        this.$set(this.filter, 'type', type)
+        this.$store.dispatch('task/getTaskList')
+        this.$st.sendEv('任务列表', '选择类别', type)
       }
     }
   }

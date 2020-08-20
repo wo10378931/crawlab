@@ -812,6 +812,7 @@ func RunSelectedSpider(c *gin.Context) {
 					UserId:     services.GetCurrentUserId(c),
 					RunType:    constants.RunTypeAllNodes,
 					ScheduleId: bson.ObjectIdHex(constants.ObjectIdNull),
+					Type:       constants.TaskTypeSpider,
 				}
 
 				id, err := services.AddTask(t)
@@ -830,6 +831,7 @@ func RunSelectedSpider(c *gin.Context) {
 				UserId:     services.GetCurrentUserId(c),
 				RunType:    constants.RunTypeRandom,
 				ScheduleId: bson.ObjectIdHex(constants.ObjectIdNull),
+				Type:       constants.TaskTypeSpider,
 			}
 			id, err := services.AddTask(t)
 			if err != nil {
@@ -847,6 +849,7 @@ func RunSelectedSpider(c *gin.Context) {
 					UserId:     services.GetCurrentUserId(c),
 					RunType:    constants.RunTypeSelectedNodes,
 					ScheduleId: bson.ObjectIdHex(constants.ObjectIdNull),
+					Type:       constants.TaskTypeSpider,
 				}
 
 				id, err := services.AddTask(t)
@@ -866,6 +869,39 @@ func RunSelectedSpider(c *gin.Context) {
 		Status:  "ok",
 		Message: "success",
 		Data:    taskIds,
+	})
+}
+
+func SetProjectsSelectedSpider(c *gin.Context) {
+	type ReqBody struct {
+		ProjectId bson.ObjectId   `json:"project_id"`
+		SpiderIds []bson.ObjectId `json:"spider_ids"`
+	}
+
+	var reqBody ReqBody
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		HandleErrorF(http.StatusBadRequest, c, "invalid request")
+		return
+	}
+
+	for _, spiderId := range reqBody.SpiderIds {
+		spider, err := model.GetSpider(spiderId)
+		if err != nil {
+			log.Errorf(err.Error())
+			debug.PrintStack()
+			continue
+		}
+		spider.ProjectId = reqBody.ProjectId
+		if err := spider.Save(); err != nil {
+			log.Errorf(err.Error())
+			debug.PrintStack()
+			continue
+		}
+	}
+
+	c.JSON(http.StatusOK, Response{
+		Status:  "ok",
+		Message: "success",
 	})
 }
 

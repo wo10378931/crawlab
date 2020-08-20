@@ -205,18 +205,65 @@
     />
     <!--./crawl confirm dialog-->
 
+    <!--batch add schedules dialog-->
+    <batch-add-schedule-dialog
+      :visible="batchAddDialogVisible"
+      @close="onBatchAddClose"
+      @confirm="onBatchAddConfirm"
+    />
+    <!--./batch add schedules dialog-->
+
     <el-card style="border-radius: 0" class="schedule-list">
       <!--filter-->
       <div class="filter">
         <div class="right">
           <el-button
             size="small"
-            type="primary"
+            type="success"
+            icon="el-icon-document-copy"
+            class="btn-add"
+            @click="onBatchAdd"
+          >
+            {{ $t('Batch Add') }}
+          </el-button>
+          <el-button
+            size="small"
+            type="success"
             icon="el-icon-plus"
             class="btn-add"
             @click="onAdd"
           >
             {{ $t('Add Schedule') }}
+          </el-button>
+          <el-button
+            v-if="selectedSchedules.length > 0"
+            size="small"
+            type="primary"
+            icon="el-icon-check"
+            class="btn-enable"
+            @click="onBatchEnable"
+          >
+            {{ $t('Enable') }}
+          </el-button>
+          <el-button
+            v-if="selectedSchedules.length > 0"
+            size="small"
+            type="info"
+            icon="el-icon-close"
+            class="btn-disable"
+            @click="onBatchDisable"
+          >
+            {{ $t('Disable') }}
+          </el-button>
+          <el-button
+            v-if="selectedSchedules.length > 0"
+            size="small"
+            type="danger"
+            icon="el-icon-delete"
+            class="btn-delete"
+            @click="onRemoveSelectedSchedules"
+          >
+            {{ $t('Remove') }}
           </el-button>
         </div>
       </div>
@@ -224,12 +271,20 @@
 
       <!--table list-->
       <el-table
+        ref="table"
         :data="filteredTableData"
         class="table"
-        height="500"
         :header-cell-style="{background:'rgb(48, 65, 86)',color:'white'}"
         border
+        row-key="_id"
+        @selection-change="onScheduleSelect"
       >
+        <el-table-column
+          type="selection"
+          width="45"
+          align="center"
+          reserve-selection
+        />
         <template v-for="col in columns">
           <el-table-column
             v-if="col.name === 'status'"
@@ -339,10 +394,12 @@
   import ParametersDialog from '../../components/Common/ParametersDialog'
   import ScheduleTaskList from '../../components/Schedule/ScheduleTaskList'
   import CrawlConfirmDialog from '../../components/Common/CrawlConfirmDialog'
+  import BatchAddScheduleDialog from '../../components/Common/BatchAddScheduleDialog'
 
   export default {
     name: 'ScheduleList',
     components: {
+      BatchAddScheduleDialog,
       CrawlConfirmDialog,
       ScheduleTaskList,
       VueCronLinux,
@@ -361,12 +418,13 @@
           { name: 'description', label: 'Description', width: '200px' },
           { name: 'enable', label: 'Enable/Disable', width: '120px' },
           { name: 'username', label: 'Owner', width: '100px' }
-        // { name: 'status', label: 'Status', width: '100px' }
+          // { name: 'status', label: 'Status', width: '100px' }
         ],
         isEdit: false,
         dialogTitle: '',
         dialogVisible: false,
         cronDialogVisible: false,
+        batchAddDialogVisible: false,
         expression: '',
         nodeList: [],
         isShowCron: false,
@@ -374,6 +432,7 @@
         isParametersVisible: false,
         isViewTasksDialogVisible: false,
         crawlConfirmDialogVisible: false,
+        selectedSchedules: [],
 
         // tutorial
         tourSteps: [
@@ -500,7 +559,8 @@
       ]),
       ...mapState('schedule', [
         'scheduleList',
-        'scheduleForm'
+        'scheduleForm',
+        'batchScheduleList'
       ]),
       lang() {
         const lang = this.$store.state.lang.lang || window.localStorage.getItem('lang')
@@ -541,6 +601,9 @@
 
       // 爬虫列表
       this.$store.dispatch('spider/getAllSpiderList')
+
+      // 节点列表
+      this.$store.dispatch('node/getNodeList')
     },
     mounted() {
       if (!this.isDisabledSpiderSchedule) {
@@ -597,6 +660,63 @@
           }
         })
         this.$st.sendEv('定时任务', '提交定时任务')
+      },
+      onBatchAdd() {
+        this.$store.commit('schedule/SET_BATCH_SCHEDULE_LIST', [])
+        for (let i = 0; i < 10; i++) {
+          this.batchScheduleList.push({
+            name: '',
+            cron: '',
+            spider_id: '',
+            run_type: 'random',
+            param: '',
+            scrapy_log_level: 'INFO',
+            description: ''
+          })
+        }
+        this.batchAddDialogVisible = true
+        this.$st.sendEv('定时任务', '点击批量添加定时任务')
+      },
+      onRemoveSelectedSchedules() {
+        this.$confirm(this.$t('Are you sure to delete selected items?'), this.$t('Notification'), {
+          confirmButtonText: this.$t('Confirm'),
+          cancelButtonText: this.$t('Cancel'),
+          type: 'warning'
+        }).then(async() => {
+          try {
+            const res = await this.$request.delete('/schedules', {
+              ids: this.selectedSchedules.map(d => d._id)
+            })
+            if (!res.data.error) {
+              this.$message.success(this.$t('Deleted successfully'))
+              this.$refs['table'].clearSelection()
+              await this.$store.dispatch('schedule/getScheduleList')
+            }
+          } finally {
+            // do nothing
+          }
+          this.$st.sendEv('定时任务', '批量删除定时任务')
+        })
+      },
+      async onBatchEnable() {
+        await this.$request.post('/schedules-set-enabled', {
+          schedule_ids: this.selectedSchedules.map(d => d._id),
+          enabled: true
+        })
+        this.$message.success('Enabled successfully')
+        this.$refs['table'].clearSelection()
+        await this.$store.dispatch('schedule/getScheduleList')
+        this.$st.sendEv('定时任务', '批量启用定时任务')
+      },
+      async onBatchDisable() {
+        await this.$request.post('/schedules-set-enabled', {
+          schedule_ids: this.selectedSchedules.map(d => d._id),
+          enabled: false
+        })
+        this.$message.success('Disabled successfully')
+        this.$refs['table'].clearSelection()
+        await this.$store.dispatch('schedule/getScheduleList')
+        this.$st.sendEv('定时任务', '批量禁用定时任务')
       },
       isShowRun(row) {
       },
@@ -702,6 +822,17 @@
         this.crawlConfirmDialogVisible = true
         this.$store.commit('schedule/SET_SCHEDULE_FORM', row)
         this.$st.sendEv('定时任务', '点击运行任务')
+      },
+      onBatchAddClose() {
+        this.batchAddDialogVisible = false
+      },
+      onBatchAddConfirm() {
+        setTimeout(() => {
+          this.$store.dispatch('schedule/getScheduleList')
+        }, 1000)
+      },
+      onScheduleSelect(schedules) {
+        this.selectedSchedules = schedules
       }
     }
   }
@@ -713,7 +844,7 @@
   }
 
   .table {
-    min-height: 360px;
+    min-height: 720px;
     margin-top: 10px;
   }
 

@@ -19,6 +19,7 @@ type TaskListRequestData struct {
 	SpiderId   string `form:"spider_id"`
 	ScheduleId string `form:"schedule_id"`
 	Status     string `form:"status"`
+	Type       string `form:"type"`
 }
 
 type TaskResultsRequestData struct {
@@ -63,6 +64,9 @@ func GetTaskList(c *gin.Context) {
 	}
 	if data.ScheduleId != "" {
 		query["schedule_id"] = bson.ObjectIdHex(data.ScheduleId)
+	}
+	if data.Type != "" {
+		query["type"] = data.Type
 	}
 
 	// 获取校验
@@ -150,6 +154,7 @@ func PutTask(c *gin.Context) {
 				UserId:     services.GetCurrentUserId(c),
 				RunType:    constants.RunTypeAllNodes,
 				ScheduleId: bson.ObjectIdHex(constants.ObjectIdNull),
+				Type:       constants.TaskTypeSpider,
 			}
 
 			id, err := services.AddTask(t)
@@ -168,6 +173,7 @@ func PutTask(c *gin.Context) {
 			UserId:     services.GetCurrentUserId(c),
 			RunType:    constants.RunTypeRandom,
 			ScheduleId: bson.ObjectIdHex(constants.ObjectIdNull),
+			Type:       constants.TaskTypeSpider,
 		}
 		id, err := services.AddTask(t)
 		if err != nil {
@@ -185,6 +191,7 @@ func PutTask(c *gin.Context) {
 				UserId:     services.GetCurrentUserId(c),
 				RunType:    constants.RunTypeSelectedNodes,
 				ScheduleId: bson.ObjectIdHex(constants.ObjectIdNull),
+				Type:       constants.TaskTypeSpider,
 			}
 
 			id, err := services.AddTask(t)
@@ -200,6 +207,88 @@ func PutTask(c *gin.Context) {
 	}
 
 	HandleSuccessData(c, taskIds)
+}
+
+func PutBatchTasks(c *gin.Context) {
+	var tasks []model.Task
+	if err := c.ShouldBindJSON(&tasks); err != nil {
+		HandleError(http.StatusOK, c, err)
+		return
+	}
+	var taskIds []string
+	for _, t := range tasks {
+		if t.RunType == constants.RunTypeAllNodes {
+			// 所有节点
+			nodes, err := model.GetNodeList(nil)
+			if err != nil {
+				HandleError(http.StatusInternalServerError, c, err)
+				return
+			}
+			for _, node := range nodes {
+				t := model.Task{
+					SpiderId:   t.SpiderId,
+					NodeId:     node.Id,
+					Param:      t.Param,
+					UserId:     services.GetCurrentUserId(c),
+					RunType:    constants.RunTypeAllNodes,
+					ScheduleId: bson.ObjectIdHex(constants.ObjectIdNull),
+					Type:       constants.TaskTypeSpider,
+				}
+
+				id, err := services.AddTask(t)
+				if err != nil {
+					HandleError(http.StatusInternalServerError, c, err)
+					return
+				}
+				taskIds = append(taskIds, id)
+			}
+		} else if t.RunType == constants.RunTypeRandom {
+			// 随机
+			t := model.Task{
+				SpiderId:   t.SpiderId,
+				Param:      t.Param,
+				UserId:     services.GetCurrentUserId(c),
+				RunType:    constants.RunTypeRandom,
+				ScheduleId: bson.ObjectIdHex(constants.ObjectIdNull),
+				Type:       constants.TaskTypeSpider,
+			}
+			id, err := services.AddTask(t)
+			if err != nil {
+				HandleError(http.StatusInternalServerError, c, err)
+				return
+			}
+			taskIds = append(taskIds, id)
+		} else if t.RunType == constants.RunTypeSelectedNodes {
+			// 指定节点
+			for _, nodeId := range t.NodeIds {
+				t := model.Task{
+					SpiderId:   t.SpiderId,
+					NodeId:     bson.ObjectIdHex(nodeId),
+					Param:      t.Param,
+					UserId:     services.GetCurrentUserId(c),
+					RunType:    constants.RunTypeSelectedNodes,
+					ScheduleId: bson.ObjectIdHex(constants.ObjectIdNull),
+					Type:       constants.TaskTypeSpider,
+				}
+
+				id, err := services.AddTask(t)
+				if err != nil {
+					HandleError(http.StatusInternalServerError, c, err)
+					return
+				}
+				taskIds = append(taskIds, id)
+			}
+		} else {
+			HandleErrorF(http.StatusInternalServerError, c, "invalid run_type")
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, Response{
+		Status:  "ok",
+		Message: "success",
+		Data:    taskIds,
+	})
 }
 
 // @Summary Delete task
@@ -242,7 +331,7 @@ func DeleteTaskByStatus(c *gin.Context) {
 func DeleteSelectedTask(c *gin.Context) {
 	ids := make(map[string][]string)
 	if err := c.ShouldBindJSON(&ids); err != nil {
-		HandleError(http.StatusInternalServerError, c, err)
+		HandleError(http.StatusBadRequest, c, err)
 		return
 	}
 	list := ids["ids"]
@@ -281,6 +370,38 @@ func DeleteTask(c *gin.Context) {
 	if err := model.RemoveTask(id); err != nil {
 		HandleError(http.StatusInternalServerError, c, err)
 		return
+	}
+	HandleSuccess(c)
+}
+
+func CancelSelectedTask(c *gin.Context) {
+	ids := make(map[string][]string)
+	if err := c.ShouldBindJSON(&ids); err != nil {
+		HandleError(http.StatusBadRequest, c, err)
+		return
+	}
+	list := ids["ids"]
+	for _, id := range list {
+		if err := services.CancelTask(id); err != nil {
+			HandleError(http.StatusInternalServerError, c, err)
+			return
+		}
+	}
+	HandleSuccess(c)
+}
+
+func RestartSelectedTask(c *gin.Context) {
+	ids := make(map[string][]string)
+	if err := c.ShouldBindJSON(&ids); err != nil {
+		HandleError(http.StatusBadRequest, c, err)
+		return
+	}
+	list := ids["ids"]
+	for _, id := range list {
+		if err := services.RestartTask(id, services.GetCurrentUserId(c)); err != nil {
+			HandleError(http.StatusInternalServerError, c, err)
+			return
+		}
 	}
 	HandleSuccess(c)
 }

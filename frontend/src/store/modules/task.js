@@ -13,7 +13,8 @@ const state = {
     node_id: '',
     spider_id: '',
     status: '',
-    schedule_id: ''
+    schedule_id: '',
+    type: 'spider'
   },
   // pagination
   pageNum: 1,
@@ -32,7 +33,9 @@ const state = {
   activeErrorLogItem: {},
   // results
   resultsPageNum: 1,
-  resultsPageSize: 10
+  resultsPageSize: 10,
+  // batch crawl
+  batchCrawlList: []
 }
 
 const getters = {
@@ -144,6 +147,12 @@ const mutations = {
   },
   SET_ACTIVE_ERROR_LOG_ITEM(state, value) {
     state.activeErrorLogItem = value
+  },
+  SET_BATCH_CRAWL_LIST(state, value) {
+    state.batchCrawlList = value
+  },
+  SET_IS_BATCH_CRAWL_DIALOG_VISIBLE(state, value) {
+    state.isBatchCrawlDialogVisible = value
   }
 }
 
@@ -153,7 +162,9 @@ const actions = {
       .then(response => {
         const data = response.data.data
         commit('SET_TASK_FORM', data)
-        dispatch('spider/getSpiderData', data.spider_id, { root: true })
+        if (data.type === 'spider') {
+          dispatch('spider/getSpiderData', data.spider_id, { root: true })
+        }
         if (data.node_id && data.node_id !== '000000000000000000000000') {
           dispatch('node/getNodeData', data.node_id, { root: true })
         }
@@ -166,7 +177,8 @@ const actions = {
       node_id: state.filter.node_id || undefined,
       spider_id: state.filter.spider_id || undefined,
       status: state.filter.status || undefined,
-      schedule_id: state.filter.schedule_id || undefined
+      schedule_id: state.filter.schedule_id || undefined,
+      type: state.filter.type || undefined
     })
       .then(response => {
         commit('SET_TASK_LIST', response.data.data || [])
@@ -226,10 +238,9 @@ const actions = {
       })
   },
   async getTaskResultExcel({ state, commit }, id) {
-    const { data } = await request.request('GET',
-      '/tasks/' + id + '/results/download', {}, {
-        responseType: 'blob' // important
-      })
+    const { data } = await request.get('/tasks/' + id + '/results/download', {}, {
+      responseType: 'blob' // important
+    })
     const downloadUrl = window.URL.createObjectURL(new Blob([data]))
 
     const link = document.createElement('a')
@@ -242,13 +253,19 @@ const actions = {
     link.click()
     link.remove()
   },
-  cancelTask({ state, dispatch }, id) {
-    return new Promise(resolve => {
-      request.post(`/tasks/${id}/cancel`)
-        .then(res => {
-          dispatch('getTaskData', id)
-          resolve(res)
-        })
+  async cancelTask({ state, dispatch }, id) {
+    const res = await request.post(`/tasks/${id}/cancel`)
+    dispatch('getTaskData', id)
+    return res
+  },
+  async cancelTaskMultiple({ dispatch }, ids) {
+    return await request.post(`/tasks-cancel`, {
+      ids
+    })
+  },
+  async restartTaskMultiple({ dispatch }, ids) {
+    return await request.post(`/tasks-restart`, {
+      ids
     })
   }
 }

@@ -224,6 +224,7 @@ func main() {
 				authGroup.POST("/spiders/:id/git/reset", routes.PostSpiderResetGit)                        // 爬虫 Git 重置
 				authGroup.POST("/spiders-cancel", routes.CancelSelectedSpider)                             // 停止所选爬虫任务
 				authGroup.POST("/spiders-run", routes.RunSelectedSpider)                                   // 运行所选爬虫
+				authGroup.POST("/spiders-set-projects", routes.SetProjectsSelectedSpider)                  // 批量设置爬虫项目
 			}
 			// 可配置爬虫
 			{
@@ -240,6 +241,7 @@ func main() {
 				authGroup.GET("/tasks", routes.GetTaskList)                                 // 任务列表
 				authGroup.GET("/tasks/:id", routes.GetTask)                                 // 任务详情
 				authGroup.PUT("/tasks", routes.PutTask)                                     // 派发任务
+				authGroup.PUT("/tasks/batch", routes.PutBatchTasks)                         // 批量派发任务
 				authGroup.DELETE("/tasks/:id", routes.DeleteTask)                           // 删除任务
 				authGroup.DELETE("/tasks", routes.DeleteSelectedTask)                       // 删除多个任务
 				authGroup.DELETE("/tasks_by_status", routes.DeleteTaskByStatus)             // 删除指定状态的任务
@@ -249,26 +251,37 @@ func main() {
 				authGroup.GET("/tasks/:id/results", routes.GetTaskResults)                  // 任务结果
 				authGroup.GET("/tasks/:id/results/download", routes.DownloadTaskResultsCsv) // 下载任务结果
 				authGroup.POST("/tasks/:id/restart", routes.RestartTask)                    // 重新开始任务
+				authGroup.POST("/tasks-cancel", routes.CancelSelectedTask)                  // 批量取消任务
+				authGroup.POST("/tasks-restart", routes.RestartSelectedTask)                // 批量重试任务
+			}
+			// 系统任务/脚本
+			{
+				authGroup.PUT("/system-tasks", routes.PutSystemTask)      // 运行系统任务
+				authGroup.GET("/system-scripts", routes.GetSystemScripts) // 获取系统脚本列表
 			}
 			// 定时任务
 			{
-				authGroup.GET("/schedules", routes.GetScheduleList)              // 定时任务列表
-				authGroup.GET("/schedules/:id", routes.GetSchedule)              // 定时任务详情
-				authGroup.PUT("/schedules", routes.PutSchedule)                  // 创建定时任务
-				authGroup.POST("/schedules/:id", routes.PostSchedule)            // 修改定时任务
-				authGroup.DELETE("/schedules/:id", routes.DeleteSchedule)        // 删除定时任务
-				authGroup.POST("/schedules/:id/disable", routes.DisableSchedule) // 禁用定时任务
-				authGroup.POST("/schedules/:id/enable", routes.EnableSchedule)   // 启用定时任务
+				authGroup.GET("/schedules", routes.GetScheduleList)                  // 定时任务列表
+				authGroup.GET("/schedules/:id", routes.GetSchedule)                  // 定时任务详情
+				authGroup.PUT("/schedules", routes.PutSchedule)                      // 创建定时任务
+				authGroup.PUT("/schedules/batch", routes.PutBatchSchedules)          // 批量创建定时任务
+				authGroup.POST("/schedules/:id", routes.PostSchedule)                // 修改定时任务
+				authGroup.DELETE("/schedules/:id", routes.DeleteSchedule)            // 删除定时任务
+				authGroup.DELETE("/schedules", routes.DeleteBatchSchedules)          // 批量删除定时任务
+				authGroup.POST("/schedules/:id/disable", routes.DisableSchedule)     // 禁用定时任务
+				authGroup.POST("/schedules/:id/enable", routes.EnableSchedule)       // 启用定时任务
+				authGroup.POST("/schedules-set-enabled", routes.SetEnabledSchedules) // 批量设置定时任务状态
 			}
 			// 用户
 			{
-				authGroup.GET("/users", routes.GetUserList)       // 用户列表
-				authGroup.GET("/users/:id", routes.GetUser)       // 用户详情
-				authGroup.POST("/users/:id", routes.PostUser)     // 更改用户
-				authGroup.DELETE("/users/:id", routes.DeleteUser) // 删除用户
-				authGroup.PUT("/users-add", routes.PutUser)       // 添加用户
-				authGroup.GET("/me", routes.GetMe)                // 获取自己账户
-				authGroup.POST("/me", routes.PostMe)              // 修改自己账户
+				authGroup.GET("/users", routes.GetUserList)                        // 用户列表
+				authGroup.GET("/users/:id", routes.GetUser)                        // 用户详情
+				authGroup.POST("/users/:id", routes.PostUser)                      // 更改用户
+				authGroup.DELETE("/users/:id", routes.DeleteUser)                  // 删除用户
+				authGroup.PUT("/users-add", routes.PutUser)                        // 添加用户
+				authGroup.GET("/me", routes.GetMe)                                 // 获取自己账户
+				authGroup.POST("/me", routes.PostMe)                               // 修改自己账户
+				authGroup.POST("/me/change-password", routes.PostMeChangePassword) // 修改自己密码
 			}
 			// 系统
 			{

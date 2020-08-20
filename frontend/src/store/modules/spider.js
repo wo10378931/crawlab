@@ -4,9 +4,12 @@ import request from '../../api/request'
 const state = {
   // list of spiders
   spiderList: [],
-  allSpiderList: [],
 
+  // total number of spiders
   spiderTotal: 0,
+
+  // list of all spiders
+  allSpiderList: [],
 
   // active spider data
   spiderForm: {},
@@ -340,6 +343,13 @@ const actions = {
     const id = payload ? payload.id : state.spiderForm._id
     const res = await request.get(`/spiders/${id}/file/tree`)
     commit('SET_FILE_TREE', res.data.data)
+  },
+  async setProjects({ state }, payload) {
+    const { projectId, spiderIds } = payload
+    await request.post(`/spiders-set-projects`, {
+      project_id: projectId,
+      spider_ids: spiderIds
+    })
   }
 }
 
